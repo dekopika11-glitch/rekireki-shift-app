@@ -15,7 +15,7 @@ export default function Home() {
   const [isNewStaff, setIsNewStaff] = useState(false);
   const [holidays, setHolidays] = useState<string[]>([]);
 
-  // データ取得
+  // 初期データ取得
   useEffect(() => {
     const fetchInitialData = async () => {
       const { data: staffData } = await supabase.from('staff').select('name').order('name');
@@ -34,7 +34,7 @@ export default function Home() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startingDayOfWeek = firstDayOfMonth.getDay();
 
-  // シフト情報の取得
+  // 選択したスタッフの既存シフトを取得
   useEffect(() => {
     const fetchExistingShifts = async () => {
       if (!staffName || isNewStaff) { setShifts({}); return; }
@@ -117,8 +117,19 @@ export default function Home() {
           </div>
         ) : (
           <div className="w-full flex flex-col gap-1 px-1 pb-2">
-            <button onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'day'); }} className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>昼:{dayShift ? '◯' : '×'}</button>
-            <button onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'night'); }} className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>夜:{nightShift ? '◯' : '×'}</button>
+            {/* ★ 修正箇所：onClick に変更し、スマホでの誤動作を防止 ★ */}
+            <button 
+              onClick={() => toggleShift(dateStr, 'day')} 
+              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-manipulation transition-transform active:scale-95 ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+            >
+              昼:{dayShift ? '◯' : '×'}
+            </button>
+            <button 
+              onClick={() => toggleShift(dateStr, 'night')} 
+              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-manipulation transition-transform active:scale-95 ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+            >
+              夜:{nightShift ? '◯' : '×'}
+            </button>
           </div>
         )}
       </div>
@@ -126,7 +137,6 @@ export default function Home() {
   }
 
   return (
-    /* ★ 修正1：w-full を追加して、中身に関わらず親要素が最大幅まで広がるように固定 */
     <div className="w-full max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 select-none">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">シフト入力</h1>
@@ -156,7 +166,6 @@ export default function Home() {
           <button onClick={nextMonth} className="p-2 bg-white border rounded-full shadow-sm text-xs">▶</button>
         </div>
         
-        {/* ★ 修正2：grid-cols-7 ではなく style で minmax(0, 1fr) を指定して幅を強制固定 */}
         <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
           {['日','月','火','水','木','金','土'].map((d, i) => (
             <div key={d} className={`text-center font-bold text-xs py-2 border-r border-b ${i===0?'text-red-500':i===6?'text-blue-500':''}`}>{d}</div>
