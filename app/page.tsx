@@ -15,25 +15,66 @@ export default function Home() {
   const [isNewStaff, setIsNewStaff] = useState(false);
   const [holidays, setHolidays] = useState<string[]>([]);
 
+  // 1. スタッフ一覧と定休日の取得（初回のみ）
   useEffect(() => {
-    const fetchStaffList = async () => {
-      const { data } = await supabase.from('staff').select('name').order('name');
-      if (data) {
-        setStaffList(data);
-        if (data.length === 0) setIsNewStaff(true);
-      }
+    const fetchInitialData = async () => {
+      const { data: staffData } = await supabase.from('staff').select('name').order('name');
+      if (staffData) setStaffList(staffData);
+      
+      const { data: holidayData } = await supabase.from('holidays').select('date');
+      if (holidayData) setHolidays(holidayData.map(row => row.date));
     };
-    const fetchHolidays = async () => {
-      const { data } = await supabase.from('holidays').select('date');
-      if (data) {
-        setHolidays(data.map(row => row.date));
-      }
-    };
-    fetchStaffList();
-    fetchHolidays();
+    fetchInitialData();
     const savedName = localStorage.getItem("shiftApp_staffName");
     if (savedName) setStaffName(savedName);
   }, []);
+
+  // 現在表示している年月の計算
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  // 2. ★既存シフトの自動取得（名前または月が変わった時に実行）
+  useEffect(() => {
+    const fetchExistingShifts = async () => {
+      if (!staffName || isNewStaff) {
+        setShifts({}); // 名前がない場合はリセット
+        return;
+      }
+
+      // 一旦リセットして読み込み感を出さないようにする、あるいは前の人のデータを消す
+      setShifts({});
+
+      // スタッフのIDを取得
+      const { data: staffData } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('name', staffName)
+        .single();
+      
+      if (!staffData) return;
+
+      // 表示中の月の範囲でシフトを取得
+      const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate())}`;
+
+      const { data: existingShifts } = await supabase
+        .from('shifts')
+        .select('date, is_day, is_night')
+        .eq('staff_id', staffData.id)
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
+
+      if (existingShifts) {
+        const newShifts: Record<string, { day: boolean; night: boolean }> = {};
+        existingShifts.forEach(s => {
+          newShifts[s.date] = { day: s.is_day, night: s.is_night };
+        });
+        setShifts(newShifts);
+      }
+    };
+
+    fetchExistingShifts();
+  }, [staffName, currentDate, isNewStaff]); // 名前・月・新規登録フラグを監視
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
@@ -41,6 +82,7 @@ export default function Home() {
       setIsNewStaff(true);
       setStaffName("");
     } else {
+      setIsNewStaff(false);
       setStaffName(selected);
       localStorage.setItem("shiftApp_staffName", selected);
     }
@@ -52,25 +94,16 @@ export default function Home() {
     localStorage.setItem("shiftApp_staffName", newName);
   };
 
-  // ★ 改善1：関数型アップデート (prev) => ... で計算の追い越しを完全に防ぐ
   const toggleShift = useCallback((dateStr: string, time: 'day' | 'night') => {
     setShifts((prev) => {
       const current = prev[dateStr] || { day: false, night: false };
-      return {
-        ...prev,
-        [dateStr]: {
-          ...current,
-          [time]: !current[time]
-        }
-      };
+      return { ...prev, [dateStr]: { ...current, [time]: !current[time] } };
     });
   }, []);
 
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
   const firstDayOfMonth = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startingDayOfWeek = firstDayOfMonth.getDay();
@@ -99,7 +132,7 @@ export default function Home() {
         const { error } = await supabase.from('shifts').upsert(shiftRecords, { onConflict: 'staff_id, date' });
         if (error) throw error;
       }
-      alert("シフトの提出が完了しました！");
+      alert("シフトの提出・更新が完了しました！");
       if (isNewStaff) {
         const { data } = await supabase.from('staff').select('name').order('name');
         if (data) setStaffList(data);
@@ -126,33 +159,19 @@ export default function Home() {
     days.push(
       <div key={i} className={`p-1 border flex flex-col items-center h-28 min-w-0 ${isHoliday ? 'bg-red-50' : 'bg-white'}`}>
         <span className={`font-bold text-sm mb-1 ${isHoliday ? 'text-red-500' : ''}`}>{i}</span>
-        
         {isHoliday ? (
-          <div className="flex-1 flex items-center justify-center">
-            <span className="text-red-400 font-bold text-[10px]">定休日</span>
-          </div>
+          <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[10px]">定休日</span></div>
         ) : (
-          <div className="w-full flex flex-col gap-1.5 flex-1 justify-center">
-            {/* ★ 改善2：onPointerDown で指が触れた瞬間に反応させる
-                ★ 改善3：e.preventDefault() で「余韻」によるゴーストクリックを遮断
-            */}
+          <div className="w-full flex flex-col gap-1 flex-1 justify-center">
             <button
-              onPointerDown={(e) => {
-                e.preventDefault();
-                toggleShift(dateStr, 'day');
-              }}
-              className={`w-full text-[10px] h-8 rounded flex justify-center items-center select-none touch-none
-                ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+              onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'day'); }}
+              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
             >
               昼:{dayShift ? '◯' : '×'}
             </button>
             <button
-              onPointerDown={(e) => {
-                e.preventDefault();
-                toggleShift(dateStr, 'night');
-              }}
-              className={`w-full text-[10px] h-8 rounded flex justify-center items-center select-none touch-none
-                ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+              onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'night'); }}
+              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
             >
               夜:{nightShift ? '◯' : '×'}
             </button>
@@ -194,18 +213,15 @@ export default function Home() {
         <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-2">
           <div className="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div className="text-blue-500">土</div>
         </div>
-        <div className="grid grid-cols-7 gap-1">
-          {days}
-        </div>
+        <div className="grid grid-cols-7 gap-1">{days}</div>
       </div>
 
       <button
-        onPointerDown={(e) => { e.preventDefault(); handleSubmit(); }}
+        onClick={handleSubmit}
         disabled={isSubmitting}
-        className={`mt-8 w-full py-4 rounded-xl font-bold shadow-lg text-white text-lg active:opacity-80
-          ${isSubmitting ? 'bg-gray-400' : 'bg-blue-600'}`}
+        className={`mt-8 w-full py-4 rounded-xl font-bold shadow-lg text-white text-lg active:opacity-80 ${isSubmitting ? 'bg-gray-400' : 'bg-blue-600'}`}
       >
-        {isSubmitting ? '送信中...' : 'シフトを提出する'}
+        {isSubmitting ? '送信中...' : 'シフトを提出・更新する'}
       </button>
 
       <div className="mt-8 text-center">
