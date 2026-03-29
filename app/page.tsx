@@ -148,7 +148,7 @@ export default function Home() {
     <div className="w-full max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 select-none">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">シフト入力</h1>
-        <a href="/admin" className="text-gray-400 hover:text-gray-600 text-xs">⚙️設定</a>
+        <a href="/admin" className="text-gray-400 hover:text-gray-600 text-xs">⚙️管理者設定</a>
       </div>
 
       <div className="mb-6">

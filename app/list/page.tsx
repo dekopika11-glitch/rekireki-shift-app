@@ -75,7 +75,7 @@ export default function ShiftList() {
               </div>
             </div>
             <div className="border-t-[0.5px] border-gray-100 pt-0.5">
-              <span className="text-[8px] font-bold text-green-600 block leading-none">全:</span>
+              <span className="text-[8px] font-bold text-green-600 block leading-none">1日:</span>
               <div className="text-[9px] sm:text-[11px] text-gray-700 leading-tight break-all font-medium">
                 {fullDayStaffs.map((name, idx) => <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>)}
               </div>
