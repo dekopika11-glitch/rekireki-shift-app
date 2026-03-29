@@ -15,7 +15,6 @@ export default function Home() {
   const [isNewStaff, setIsNewStaff] = useState(false);
   const [holidays, setHolidays] = useState<string[]>([]);
 
-  // 初回データ取得
   useEffect(() => {
     const fetchInitialData = async () => {
       const { data: staffData } = await supabase.from('staff').select('name').order('name');
@@ -28,14 +27,12 @@ export default function Home() {
     if (savedName) setStaffName(savedName);
   }, []);
 
-  // カレンダー計算用の変数（ここでエラーが出ていた定義を行っています）
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDayOfMonth = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startingDayOfWeek = firstDayOfMonth.getDay();
 
-  // 既存シフトの自動取得
   useEffect(() => {
     const fetchExistingShifts = async () => {
       if (!staffName || isNewStaff) {
@@ -44,22 +41,17 @@ export default function Home() {
       }
       const { data: staffData } = await supabase.from('staff').select('id').eq('name', staffName).single();
       if (!staffData) return;
-
       const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
       const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-
       const { data: existingShifts } = await supabase
         .from('shifts')
         .select('date, is_day, is_night')
         .eq('staff_id', staffData.id)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
-
       if (existingShifts) {
         const newShifts: Record<string, { day: boolean; night: boolean }> = {};
-        existingShifts.forEach(s => {
-          newShifts[s.date] = { day: s.is_day, night: s.is_night };
-        });
+        existingShifts.forEach(s => { newShifts[s.date] = { day: s.is_day, night: s.is_night }; });
         setShifts(newShifts);
       }
     };
@@ -68,20 +60,8 @@ export default function Home() {
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
-    if (selected === "NEW_STAFF") {
-      setIsNewStaff(true);
-      setStaffName("");
-    } else {
-      setIsNewStaff(false);
-      setStaffName(selected);
-      localStorage.setItem("shiftApp_staffName", selected);
-    }
-  };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value;
-    setStaffName(newName);
-    localStorage.setItem("shiftApp_staffName", newName);
+    if (selected === "NEW_STAFF") { setIsNewStaff(true); setStaffName(""); }
+    else { setIsNewStaff(false); setStaffName(selected); localStorage.setItem("shiftApp_staffName", selected); }
   };
 
   const toggleShift = useCallback((dateStr: string, time: 'day' | 'night') => {
@@ -95,10 +75,7 @@ export default function Home() {
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
 
   const handleSubmit = async () => {
-    if (!staffName.trim()) {
-      alert("名前を選択してください！");
-      return;
-    }
+    if (!staffName.trim()) { alert("名前を選択してください！"); return; }
     setIsSubmitting(true);
     try {
       let { data: staffData } = await supabase.from('staff').select('id').eq('name', staffName).single();
@@ -109,10 +86,7 @@ export default function Home() {
       }
       const shiftRecordsToSubmit = Object.entries(shifts).filter(([date]) => !holidays.includes(date));
       const shiftRecords = shiftRecordsToSubmit.map(([date, times]) => ({
-        staff_id: currentStaffId,
-        date: date,
-        is_day: times.day,
-        is_night: times.night
+        staff_id: currentStaffId, date, is_day: times.day, is_night: times.night
       }));
       if (shiftRecords.length > 0) {
         const { error } = await supabase.from('shifts').upsert(shiftRecords, { onConflict: 'staff_id, date' });
@@ -124,45 +98,30 @@ export default function Home() {
         if (data) setStaffList(data);
         setIsNewStaff(false);
       }
-    } catch (error) {
-      console.error(error);
-      alert("エラーが発生しました。");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (error) { console.error(error); alert("エラーが発生しました。"); } finally { setIsSubmitting(false); }
   };
 
   const days = [];
+  // 空白マスも w-full min-w-0 で固定
   for (let i = 0; i < startingDayOfWeek; i++) {
-    days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/30"></div>);
+    days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/30 w-full min-w-0 h-32"></div>);
   }
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
     const dayShift = shifts[dateStr]?.day || false;
     const nightShift = shifts[dateStr]?.night || false;
     const isHoliday = holidays.includes(dateStr);
-
     days.push(
       <div key={i} className={`border-r border-b flex flex-col items-center h-32 w-full min-w-0 overflow-hidden ${isHoliday ? 'bg-red-50' : 'bg-white'}`}>
         <span className={`font-bold text-sm my-1 ${isHoliday ? 'text-red-600' : ''}`}>{i}</span>
         {isHoliday ? (
           <div className="flex-1 flex items-center justify-center w-full px-1">
-            <span className="text-red-400 font-bold text-[10px] sm:text-xs text-center break-all">定休日</span>
+            <span className="text-red-400 font-bold text-[10px] sm:text-xs text-center">定休日</span>
           </div>
         ) : (
           <div className="w-full flex flex-col gap-1 px-1 pb-2">
-            <button
-              onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'day'); }}
-              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-            >
-              昼:{dayShift ? '◯' : '×'}
-            </button>
-            <button
-              onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'night'); }}
-              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-            >
-              夜:{nightShift ? '◯' : '×'}
-            </button>
+            <button onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'day'); }} className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>昼:{dayShift ? '◯' : '×'}</button>
+            <button onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'night'); }} className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>夜:{nightShift ? '◯' : '×'}</button>
           </div>
         )}
       </div>
@@ -175,7 +134,6 @@ export default function Home() {
         <h1 className="text-2xl font-bold">シフト入力</h1>
         <a href="/admin" className="text-gray-400 hover:text-gray-600 text-xs">⚙️設定</a>
       </div>
-
       <div className="mb-6">
         <label className="block text-sm font-bold mb-2">名前</label>
         {!isNewStaff && staffList.length > 0 ? (
@@ -186,19 +144,17 @@ export default function Home() {
           </select>
         ) : (
           <div className="flex gap-2">
-            <input type="text" value={staffName} onChange={handleNameChange} className="flex-1 border-2 border-gray-300 p-2 rounded-lg" placeholder="名前を入力" />
+            <input type="text" value={staffName} onChange={(e) => setStaffName(e.target.value)} className="flex-1 border-2 border-gray-300 p-2 rounded-lg" placeholder="名前を入力" />
             <button onClick={() => setIsNewStaff(false)} className="bg-gray-200 px-3 rounded-lg text-sm font-bold">戻る</button>
           </div>
         )}
       </div>
-
       <div className="bg-white shadow-sm border-t border-l border-gray-200">
         <div className="flex justify-between items-center p-4 border-b border-r border-gray-200 bg-gray-50/30">
           <button onClick={prevMonth} className="p-2 bg-white border rounded-full shadow-sm text-xs">◀</button>
           <h2 className="text-lg font-bold">{year}年 {month + 1}月</h2>
           <button onClick={nextMonth} className="p-2 bg-white border rounded-full shadow-sm text-xs">▶</button>
         </div>
-        
         <div className="grid grid-cols-7 w-full">
           {['日','月','火','水','木','金','土'].map((d, i) => (
             <div key={d} className={`text-center font-bold text-xs py-2 border-r border-b ${i===0?'text-red-500':i===6?'text-blue-500':''}`}>{d}</div>
@@ -206,18 +162,8 @@ export default function Home() {
           {days}
         </div>
       </div>
-
-      <button
-        onClick={handleSubmit}
-        disabled={isSubmitting}
-        className={`mt-8 w-full py-4 rounded-xl font-bold shadow-lg text-white text-lg active:opacity-80 ${isSubmitting ? 'bg-gray-400' : 'bg-blue-600'}`}
-      >
-        {isSubmitting ? '送信中...' : 'シフトを提出・更新する'}
-      </button>
-
-      <div className="mt-8 text-center">
-        <a href="/list" className="text-blue-600 font-bold border-b border-blue-600 pb-0.5">全員のシフトを見る →</a>
-      </div>
+      <button onClick={handleSubmit} disabled={isSubmitting} className={`mt-8 w-full py-4 rounded-xl font-bold shadow-lg text-white text-lg active:opacity-80 ${isSubmitting ? 'bg-gray-400' : 'bg-blue-600'}`}>{isSubmitting ? '送信中...' : 'シフトを提出・更新する'}</button>
+      <div className="mt-8 text-center"><a href="/list" className="text-blue-600 font-bold border-b border-blue-600 pb-0.5">全員のシフトを見る →</a></div>
     </div>
   );
 }
