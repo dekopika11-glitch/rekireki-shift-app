@@ -15,12 +15,11 @@ export default function Home() {
   const [isNewStaff, setIsNewStaff] = useState(false);
   const [holidays, setHolidays] = useState<string[]>([]);
 
-  // 1. スタッフ一覧と定休日の取得（初回のみ）
+  // 初回データ取得
   useEffect(() => {
     const fetchInitialData = async () => {
       const { data: staffData } = await supabase.from('staff').select('name').order('name');
       if (staffData) setStaffList(staffData);
-      
       const { data: holidayData } = await supabase.from('holidays').select('date');
       if (holidayData) setHolidays(holidayData.map(row => row.date));
     };
@@ -29,33 +28,25 @@ export default function Home() {
     if (savedName) setStaffName(savedName);
   }, []);
 
-  // 現在表示している年月の計算
+  // カレンダー計算用の変数（ここでエラーが出ていた定義を行っています）
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const firstDayOfMonth = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startingDayOfWeek = firstDayOfMonth.getDay();
 
-  // 2. ★既存シフトの自動取得（名前または月が変わった時に実行）
+  // 既存シフトの自動取得
   useEffect(() => {
     const fetchExistingShifts = async () => {
       if (!staffName || isNewStaff) {
-        setShifts({}); // 名前がない場合はリセット
+        setShifts({});
         return;
       }
-
-      // 一旦リセットして読み込み感を出さないようにする、あるいは前の人のデータを消す
-      setShifts({});
-
-      // スタッフのIDを取得
-      const { data: staffData } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('name', staffName)
-        .single();
-      
+      const { data: staffData } = await supabase.from('staff').select('id').eq('name', staffName).single();
       if (!staffData) return;
 
-      // 表示中の月の範囲でシフトを取得
       const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate())}`;
+      const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
 
       const { data: existingShifts } = await supabase
         .from('shifts')
@@ -72,9 +63,8 @@ export default function Home() {
         setShifts(newShifts);
       }
     };
-
     fetchExistingShifts();
-  }, [staffName, currentDate, isNewStaff]); // 名前・月・新規登録フラグを監視
+  }, [staffName, currentDate, isNewStaff, year, month, daysInMonth]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
@@ -103,10 +93,6 @@ export default function Home() {
 
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-
-  const firstDayOfMonth = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startingDayOfWeek = firstDayOfMonth.getDay();
 
   const handleSubmit = async () => {
     if (!staffName.trim()) {
@@ -148,7 +134,7 @@ export default function Home() {
 
   const days = [];
   for (let i = 0; i < startingDayOfWeek; i++) {
-    days.push(<div key={`empty-${i}`} className="p-1 border bg-gray-50"></div>);
+    days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/30"></div>);
   }
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -157,12 +143,14 @@ export default function Home() {
     const isHoliday = holidays.includes(dateStr);
 
     days.push(
-      <div key={i} className={`p-1 border flex flex-col items-center h-28 min-w-0 ${isHoliday ? 'bg-red-50' : 'bg-white'}`}>
-        <span className={`font-bold text-sm mb-1 ${isHoliday ? 'text-red-500' : ''}`}>{i}</span>
+      <div key={i} className={`border-r border-b flex flex-col items-center h-32 w-full min-w-0 overflow-hidden ${isHoliday ? 'bg-red-50' : 'bg-white'}`}>
+        <span className={`font-bold text-sm my-1 ${isHoliday ? 'text-red-600' : ''}`}>{i}</span>
         {isHoliday ? (
-          <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[10px]">定休日</span></div>
+          <div className="flex-1 flex items-center justify-center w-full px-1">
+            <span className="text-red-400 font-bold text-[10px] sm:text-xs text-center break-all">定休日</span>
+          </div>
         ) : (
-          <div className="w-full flex flex-col gap-1 flex-1 justify-center">
+          <div className="w-full flex flex-col gap-1 px-1 pb-2">
             <button
               onPointerDown={(e) => { e.preventDefault(); toggleShift(dateStr, 'day'); }}
               className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-none ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
@@ -204,16 +192,19 @@ export default function Home() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-1">
-        <div className="flex justify-between items-center mb-4 px-2">
-          <button onClick={prevMonth} className="p-2 bg-gray-100 rounded-full">◀</button>
+      <div className="bg-white shadow-sm border-t border-l border-gray-200">
+        <div className="flex justify-between items-center p-4 border-b border-r border-gray-200 bg-gray-50/30">
+          <button onClick={prevMonth} className="p-2 bg-white border rounded-full shadow-sm text-xs">◀</button>
           <h2 className="text-lg font-bold">{year}年 {month + 1}月</h2>
-          <button onClick={nextMonth} className="p-2 bg-gray-100 rounded-full">▶</button>
+          <button onClick={nextMonth} className="p-2 bg-white border rounded-full shadow-sm text-xs">▶</button>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-2">
-          <div className="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div className="text-blue-500">土</div>
+        
+        <div className="grid grid-cols-7 w-full">
+          {['日','月','火','水','木','金','土'].map((d, i) => (
+            <div key={d} className={`text-center font-bold text-xs py-2 border-r border-b ${i===0?'text-red-500':i===6?'text-blue-500':''}`}>{d}</div>
+          ))}
+          {days}
         </div>
-        <div className="grid grid-cols-7 gap-1">{days}</div>
       </div>
 
       <button

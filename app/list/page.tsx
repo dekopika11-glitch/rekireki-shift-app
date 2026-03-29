@@ -13,6 +13,9 @@ export default function ShiftList() {
   const [isLoading, setIsLoading] = useState(true);
   const [holidays, setHolidays] = useState<string[]>([]);
 
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
   const fetchData = async () => {
     setIsLoading(true);
     const { data: shiftData } = await supabase
@@ -31,18 +34,19 @@ export default function ShiftList() {
       });
     }
     setMonthlyShifts(formattedData);
+
     const { data: holidayData } = await supabase.from('holidays').select('date');
     if (holidayData) setHolidays(holidayData.map(row => row.date));
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, [currentDate]);
+  useEffect(() => {
+    fetchData();
+  }, [currentDate]);
 
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
   const firstDayOfMonth = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startingDayOfWeek = firstDayOfMonth.getDay();
@@ -60,37 +64,43 @@ export default function ShiftList() {
     const isHoliday = holidays.includes(dateStr);
 
     days.push(
-      <div key={i} className={`flex flex-col h-40 sm:h-56 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
-        {/* 日付ヘッダー（スマホではさらに小さく） */}
+      <div key={i} className={`flex flex-col h-48 sm:h-64 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
         <span className={`font-bold text-[10px] sm:text-sm border-b py-0.5 text-center shrink-0 ${isHoliday ? 'bg-red-100 text-red-600' : 'bg-gray-100/80'}`}>
           {i}
         </span>
         
         {isHoliday ? (
           <div className="flex-1 flex items-center justify-center">
-            <span className="text-red-400 font-bold text-[8px] sm:text-xs">休</span>
+            <span className="text-red-400 font-bold text-[10px] sm:text-xs">休</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto flex-1 p-0.5">
+          <div className="flex flex-col gap-1 overflow-y-auto flex-1 p-0.5">
             {/* 昼 */}
-            <div className="mb-0.5">
-              <span className="text-[8px] sm:text-[10px] font-bold text-blue-600 block leading-none">昼:</span>
-              <div className="text-[9px] sm:text-[11px] text-gray-700 leading-tight break-all">
-                {dayStaffs.map((name, idx) => <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>)}
+            <div className="mb-1">
+              <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 block leading-none">昼:</span>
+              {/* ★ 改善：11pt 指定。break-all で枠を壊さないように改行 */}
+              <div className="text-[11pt] text-gray-700 leading-tight break-all">
+                {dayStaffs.map((name, idx) => (
+                  <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>
+                ))}
               </div>
             </div>
             {/* 夜 */}
-            <div className="border-t-[0.5px] border-gray-100 pt-0.5 mb-0.5">
-              <span className="text-[8px] sm:text-[10px] font-bold text-indigo-600 block leading-none">夜:</span>
-              <div className="text-[9px] sm:text-[11px] text-gray-700 leading-tight break-all">
-                {nightStaffs.map((name, idx) => <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>)}
+            <div className="border-t-[0.5px] border-gray-100 pt-1 mb-1">
+              <span className="text-[9px] sm:text-[10px] font-bold text-indigo-600 block leading-none">夜:</span>
+              <div className="text-[11pt] text-gray-700 leading-tight break-all">
+                {nightStaffs.map((name, idx) => (
+                  <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>
+                ))}
               </div>
             </div>
-            {/* 1日 */}
-            <div className="border-t-[0.5px] border-gray-100 pt-0.5">
-              <span className="text-[8px] sm:text-[10px] font-bold text-green-600 block leading-none">全:</span>
-              <div className="text-[9px] sm:text-[11px] text-gray-700 leading-tight break-all">
-                {fullDayStaffs.map((name, idx) => <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>)}
+            {/* 全日 */}
+            <div className="border-t-[0.5px] border-gray-100 pt-1">
+              <span className="text-[9px] sm:text-[10px] font-bold text-green-600 block leading-none">全:</span>
+              <div className="text-[11pt] text-gray-700 leading-tight break-all">
+                {fullDayStaffs.map((name, idx) => (
+                  <div key={idx} className="border-b-[0.5px] border-gray-50 last:border-0">{name}</div>
+                ))}
               </div>
             </div>
           </div>
@@ -109,30 +119,32 @@ export default function ShiftList() {
         </a>
       </div>
 
-      {/* カレンダー本体：w-full で画面幅いっぱいに固定 */}
-      <div className="w-full bg-white border-t border-l border-gray-200 overflow-hidden">
+      <div className="w-full bg-white border-t border-l border-gray-200 shadow-sm overflow-hidden">
         
         {/* 月切り替え */}
         <div className="flex justify-between items-center p-2 sm:p-4 bg-gray-50/50 border-b border-r border-gray-200">
-          <button onClick={prevMonth} className="px-2 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100">先月</button>
+          <button onClick={prevMonth} className="px-3 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100 shadow-sm">先月</button>
           <h2 className="text-sm sm:text-lg font-bold">{year}年 {month + 1}月</h2>
-          <button onClick={nextMonth} className="px-2 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100">翌月</button>
+          <button onClick={nextMonth} className="px-3 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100 shadow-sm">翌月</button>
         </div>
 
-        {/* 曜日ヘッダー */}
-        <div className="grid grid-cols-7 text-center font-bold text-[10px] sm:text-sm bg-gray-50 py-1 border-b border-r border-gray-200">
+        {/* 曜日ヘッダー：ここも grid-cols-7 で固定 */}
+        <div className="grid grid-cols-7 text-center font-bold text-[10px] sm:text-sm bg-gray-50 py-2 border-b border-r border-gray-200">
           <div className="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div className="text-blue-500">土</div>
         </div>
 
         {isLoading ? (
           <div className="text-center py-20 text-gray-400 text-xs border-r border-gray-200">読み込み中...</div>
         ) : (
-          /* grid-cols-7 で強制的に7等分 */
           <div className="grid grid-cols-7 w-full">
             {days}
           </div>
         )}
       </div>
+
+      <p className="text-center text-gray-400 text-[9px] mt-4 mb-8">
+        ※ 11ptの文字サイズで表示しています
+      </p>
     </div>
   );
 }
