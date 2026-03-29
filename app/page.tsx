@@ -34,7 +34,7 @@ export default function Home() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startingDayOfWeek = firstDayOfMonth.getDay();
 
-  // 選択したスタッフの既存シフトを取得
+  // シフト情報の取得
   useEffect(() => {
     const fetchExistingShifts = async () => {
       if (!staffName || isNewStaff) { setShifts({}); return; }
@@ -117,16 +117,24 @@ export default function Home() {
           </div>
         ) : (
           <div className="w-full flex flex-col gap-1 px-1 pb-2">
-            {/* ★ 修正箇所：onClick に変更し、スマホでの誤動作を防止 ★ */}
+            {/* ★ 修正ポイント：
+                1. key を付与して要素を厳密に区別
+                2. active:scale-95 を削除して当たり判定を固定
+                3. type="button" を明示
+            */}
             <button 
+              key={`${dateStr}-day`}
+              type="button"
               onClick={() => toggleShift(dateStr, 'day')} 
-              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-manipulation transition-transform active:scale-95 ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-manipulation active:opacity-70 transition-colors ${dayShift ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
             >
               昼:{dayShift ? '◯' : '×'}
             </button>
             <button 
+              key={`${dateStr}-night`}
+              type="button"
               onClick={() => toggleShift(dateStr, 'night')} 
-              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-manipulation transition-transform active:scale-95 ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+              className={`w-full text-[11px] h-9 rounded-md flex justify-center items-center select-none touch-manipulation active:opacity-70 transition-colors ${nightShift ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}
             >
               夜:{nightShift ? '◯' : '×'}
             </button>
