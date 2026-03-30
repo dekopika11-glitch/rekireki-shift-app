@@ -149,14 +149,15 @@ export default function ShiftList() {
               </div>
             </div>
 
-            {/* 時間指定: 全員まとめて横一行でスワイプ */}
+            {/* 時間指定: 名前と時間を改行し、全員分を縦に並べて枠全体でスクロール */}
             <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
-              <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-row items-center gap-x-1.5">
+              <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col justify-start">
                 {shift.timed.map((s, idx) => (
-                  <span key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap">
-                    {s.name}:{s.range}{idx < shift.timed.length - 1 ? ',' : ''}
-                  </span>
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight">
+                    <div>{s.name}:</div>
+                    <div className="mb-0.5">{s.range}</div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -173,11 +174,11 @@ export default function ShiftList() {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      {/* ... (以下、戻るボタン等は変更なし) ... */}
       <div className="flex justify-between items-center p-3 sm:px-0">
         <h1 className="text-lg sm:text-2xl font-bold">シフト一覧</h1>
         <Link href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</Link>
       </div>
+      {/* ... (カレンダー表示部は変更なし) ... */}
       <div className="w-full bg-white border-t border-l border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="flex justify-between items-center p-2 sm:p-4 bg-gray-50/50 border-b border-r border-gray-200">
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="px-3 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100 shadow-sm">先月</button>
@@ -193,6 +194,7 @@ export default function ShiftList() {
           <div className="grid grid-cols-7 w-full">{days}</div>
         )}
       </div>
+      {/* ... (提出状況も変更なし) ... */}
       {!isLoading && (
         <div className="bg-white border rounded-xl shadow-sm p-4 mx-2 sm:mx-0">
           <h3 className="font-bold text-gray-700 mb-4 text-sm sm:text-base border-b pb-2">📋 {month + 1}月の提出状況</h3>
