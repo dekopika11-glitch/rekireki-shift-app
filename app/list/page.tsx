@@ -18,7 +18,6 @@ const getEffectiveHolidays = (y: number, m: number, dbHols: string[]) => {
   return monthHols;
 };
 
-// 名前を3つの行（段）に分配する関数
 const distributeToRows = (names: string[]) => {
   const row1: string[] = [];
   const row2: string[] = [];
@@ -123,7 +122,6 @@ export default function ShiftList() {
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden font-medium text-gray-700 leading-none">
             
-            {/* 昼 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-blue-600 mb-0.5 shrink-0">昼</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -133,7 +131,6 @@ export default function ShiftList() {
               </div>
             </div>
 
-            {/* 夜 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-indigo-600 mb-0.5 shrink-0">夜</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -143,7 +140,6 @@ export default function ShiftList() {
               </div>
             </div>
 
-            {/* 1日 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-green-600 mb-0.5 shrink-0">1日</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -153,13 +149,14 @@ export default function ShiftList() {
               </div>
             </div>
 
-            {/* 時間指定 (縦スワイプ対応) */}
+            {/* 時間指定: 改行レイアウト */}
             <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
-              <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col gap-y-0.5">
+              <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col gap-y-1">
                 {shift.timed.map((s, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight break-all border-b border-gray-50 last:border-0 pb-0.5">
-                    {s.name}:{s.range}
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight border-b border-gray-50 last:border-0 pb-1">
+                    <div className="font-bold text-gray-800">{s.name}:</div>
+                    <div className="pl-0.5 text-gray-600">{s.range}</div>
                   </div>
                 ))}
               </div>
