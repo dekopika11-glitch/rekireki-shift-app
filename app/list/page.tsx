@@ -30,13 +30,18 @@ const distributeToRows = (names: string[]) => {
   return [row1, row2, row3];
 };
 
+// ★修正: データ構造を変更。時間指定なし/あり を分けて保持する
+type ShiftCategory = {
+  noTime: string[];
+  timed: { name: string; range: string }[];
+};
+
 export default function ShiftList() {
   const [currentDate, setCurrentDate] = useState(new Date());
   type DayShift = { 
-    day: string[]; 
-    night: string[]; 
-    fullDay: string[]; 
-    timed: { name: string; range: string }[] 
+    day: ShiftCategory; 
+    night: ShiftCategory; 
+    fullDay: ShiftCategory; 
   };
   const [monthlyShifts, setMonthlyShifts] = useState<Record<string, DayShift>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +76,11 @@ export default function ShiftList() {
           submittedIds.add(row.staff_id);
 
           if (!formattedData[dateStr]) {
-            formattedData[dateStr] = { day: [], night: [], fullDay: [], timed: [] };
+            formattedData[dateStr] = { 
+              day: { noTime: [], timed: [] }, 
+              night: { noTime: [], timed: [] }, 
+              fullDay: { noTime: [], timed: [] } 
+            };
           }
 
           if (row.start_time || row.end_time) {
@@ -80,11 +89,14 @@ export default function ShiftList() {
             else if (row.start_time) rangeStr = `${row.start_time}-`;
             else if (row.end_time) rangeStr = `-${row.end_time}`;
 
-            formattedData[dateStr].timed.push({ name: staffName, range: rangeStr });
+            const timedObj = { name: staffName, range: rangeStr };
+            if (row.is_day && row.is_night) formattedData[dateStr].fullDay.timed.push(timedObj);
+            else if (row.is_day) formattedData[dateStr].day.timed.push(timedObj);
+            else if (row.is_night) formattedData[dateStr].night.timed.push(timedObj);
           } else {
-            if (row.is_day && row.is_night) formattedData[dateStr].fullDay.push(staffName);
-            else if (row.is_day) formattedData[dateStr].day.push(staffName);
-            else if (row.is_night) formattedData[dateStr].night.push(staffName);
+            if (row.is_day && row.is_night) formattedData[dateStr].fullDay.noTime.push(staffName);
+            else if (row.is_day) formattedData[dateStr].day.noTime.push(staffName);
+            else if (row.is_night) formattedData[dateStr].night.noTime.push(staffName);
           }
         });
       }
@@ -102,17 +114,49 @@ export default function ShiftList() {
   const startingDayOfWeek = new Date(year, month, 1).getDay();
   const currentEffectiveHolidays = getEffectiveHolidays(year, month, holidays);
 
+  // ★各枠の描画ロジックを共通化
+  const renderShiftCategory = (title: string, colorClass: string, categoryData: ShiftCategory) => {
+    const rows = distributeToRows(categoryData.noTime);
+    return (
+      <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
+        <span className={`text-[5.2pt] sm:text-[10px] font-bold ${colorClass} mb-0.5 shrink-0`}>{title}</span>
+        {/* 全体を縦スクロール可能に */}
+        <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col justify-start">
+          
+          {/* 上部: 時間指定なし (3行で横スワイプ) */}
+          {categoryData.noTime.length > 0 && (
+            <div className="w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
+              {rows.map((row, idx) => row.length > 0 ? (
+                <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
+                  {row.join(', ')}
+                </div>
+              ) : null)}
+            </div>
+          )}
+
+          {/* 下部: 時間指定あり (1人1行・上に詰める・線なし) */}
+          {categoryData.timed.map((s, idx) => (
+            <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight py-[1px] whitespace-nowrap">
+              {s.name}:{s.range}
+            </div>
+          ))}
+
+        </div>
+      </div>
+    );
+  };
+
   const days = [];
   for (let i = 0; i < startingDayOfWeek; i++) days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/50 h-52 sm:h-80"></div>);
   
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const shift = monthlyShifts[dateStr] || { day: [], night: [], fullDay: [], timed: [] };
+    const shift = monthlyShifts[dateStr] || { 
+      day: { noTime: [], timed: [] }, 
+      night: { noTime: [], timed: [] }, 
+      fullDay: { noTime: [], timed: [] } 
+    };
     const isHoliday = currentEffectiveHolidays.includes(dateStr); 
-
-    const dayRows = distributeToRows(shift.day);
-    const nightRows = distributeToRows(shift.night);
-    const fullDayRows = distributeToRows(shift.fullDay);
 
     days.push(
       <div key={i} className={`flex flex-col h-52 sm:h-80 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
@@ -121,46 +165,9 @@ export default function ShiftList() {
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden font-medium text-gray-700 leading-none">
-            
-            <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5.2pt] sm:text-[10px] font-bold text-blue-600 mb-0.5 shrink-0">昼</span>
-              <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
-                {dayRows.map((row, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">{row.join(', ')}</div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5.2pt] sm:text-[10px] font-bold text-indigo-600 mb-0.5 shrink-0">夜</span>
-              <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
-                {nightRows.map((row, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">{row.join(', ')}</div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5.2pt] sm:text-[10px] font-bold text-green-600 mb-0.5 shrink-0">1日</span>
-              <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
-                {fullDayRows.map((row, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">{row.join(', ')}</div>
-                ))}
-              </div>
-            </div>
-
-            {/* 時間指定: 名前:時間を改行せず1行で表示し、下に追加していく */}
-            <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
-              <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col justify-start">
-                {shift.timed.map((s, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight py-[1px] whitespace-nowrap">
-                    {s.name}:{s.range}
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            {renderShiftCategory("昼", "text-blue-600", shift.day)}
+            {renderShiftCategory("夜", "text-indigo-600", shift.night)}
+            {renderShiftCategory("1日", "text-green-600", shift.fullDay)}
           </div>
         )}
       </div>

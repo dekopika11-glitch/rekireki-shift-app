@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 
-const generateTimeOptions = () => {
+// 選択されたシフトに応じて時間オプションを生成
+const getAvailableTimeOptions = (isDay: boolean, isNight: boolean) => {
   const options = [];
   for (let i = 0; i < 24; i++) {
     const hour = String(i).padStart(2, '0');
@@ -14,10 +15,13 @@ const generateTimeOptions = () => {
     const minutes = h * 60 + m;
     const isDayTime = minutes >= 10 * 60 && minutes <= 15 * 60;  
     const isNightTime = minutes >= 17 * 60 && minutes <= 22 * 60; 
-    return isDayTime || isNightTime;
+    
+    if (isDay && isNight) return isDayTime || isNightTime;
+    if (isDay) return isDayTime;
+    if (isNight) return isNightTime;
+    return false;
   });
 };
-const timeOptions = generateTimeOptions();
 
 const getEffectiveHolidays = (y: number, m: number, dbHols: string[]) => {
   const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
@@ -49,6 +53,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [staffList, setStaffList] = useState<{name: string}[]>([]);
   const [holidays, setHolidays] = useState<string[]>([]);
+  
   const [timeModalDate, setTimeModalDate] = useState<string | null>(null);
   const [tempStartTime, setTempStartTime] = useState("");
   const [tempEndTime, setTempEndTime] = useState("");
@@ -97,12 +102,18 @@ export default function Home() {
   const toggleShift = useCallback((dateStr: string, time: 'day' | 'night') => {
     setShifts((prev) => {
       const current = prev[dateStr] || { day: false, night: false };
-      return { ...prev, [dateStr]: { ...current, [time]: !current[time] } };
+      const nextState = { ...current, [time]: !current[time] };
+      if (!nextState.day && !nextState.night) {
+        nextState.startTime = null;
+        nextState.endTime = null;
+      }
+      return { ...prev, [dateStr]: nextState };
     });
   }, []);
 
   const openTimeModal = (dateStr: string) => {
     const current = shifts[dateStr];
+    if (!current?.day && !current?.night) return; 
     setTempStartTime(current?.startTime || "");
     setTempEndTime(current?.endTime || "");
     setTimeModalDate(dateStr);
@@ -145,20 +156,34 @@ export default function Home() {
   };
 
   const days = [];
-  for (let i = 0; i < startingDayOfWeek; i++) days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/30 h-36"></div>);
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/30 h-36"></div>);
+  }
+  
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
     const shiftData = shifts[dateStr];
     const hasTime = !!(shiftData?.startTime || shiftData?.endTime); 
+    const isDayOrNightSelected = !!(shiftData?.day || shiftData?.night);
     const isHoliday = currentEffectiveHolidays.includes(dateStr); 
+    
     days.push(
-      <div key={i} className={`border-r border-b flex flex-col items-center h-36 ${isHoliday ? 'bg-red-50' : 'bg-white'}`}>
+      <div key={i} className={`border-r border-b flex flex-col items-center h-36 overflow-hidden ${isHoliday ? 'bg-red-50' : 'bg-white'}`}>
         <span className={`font-bold text-sm my-1 ${isHoliday ? 'text-red-600' : ''}`}>{i}</span>
-        {!isHoliday && (
+        {/* ★ここを修正: 定休日の場合は「定休日」と表示し、そうでない場合は入力ボタンを表示 */}
+        {isHoliday ? (
+          <div className="flex-1 flex items-center justify-center w-full px-1">
+            <span className="text-red-400 font-bold text-[10px] sm:text-xs text-center truncate">定休日</span>
+          </div>
+        ) : (
           <div className="w-full flex flex-col gap-1 px-1 pb-1">
             <button onClick={() => toggleShift(dateStr, 'day')} className={`w-full text-[10px] h-7 rounded-md ${shiftData?.day ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>昼:{shiftData?.day ? '◯' : '×'}</button>
             <button onClick={() => toggleShift(dateStr, 'night')} className={`w-full text-[10px] h-7 rounded-md ${shiftData?.night ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>夜:{shiftData?.night ? '◯' : '×'}</button>
-            <button onClick={() => openTimeModal(dateStr)} className={`w-full text-[9px] h-7 rounded-md ${hasTime ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+            <button 
+              onClick={() => openTimeModal(dateStr)} 
+              disabled={!isDayOrNightSelected}
+              className={`w-full text-[9px] h-7 rounded-md transition-all ${!isDayOrNightSelected ? 'bg-gray-50 text-gray-300 cursor-not-allowed opacity-50' : (hasTime ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500')}`}
+            >
               {hasTime ? (shiftData.startTime && shiftData.endTime ? `${shiftData.startTime}-${shiftData.endTime}` : shiftData.startTime ? `${shiftData.startTime}-` : `-${shiftData.endTime}`) : '時間指定'}
             </button>
           </div>
@@ -167,9 +192,11 @@ export default function Home() {
     );
   }
 
+  const activeTimeOptions = timeModalDate ? getAvailableTimeOptions(shifts[timeModalDate]?.day || false, shifts[timeModalDate]?.night || false) : [];
+
   return (
     <div className="w-full max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 select-none">
-      <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold">シフト入力</h1><a href="/admin" className="text-gray-400 text-xs">⚙️管理者設定</a></div>
+      <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold">シフト入力</h1><a href="/admin" className="text-gray-400 text-xs">⚙️設定</a></div>
       <select value={staffName} onChange={(e) => {setStaffName(e.target.value); localStorage.setItem("shiftApp_staffName", e.target.value);}} className="w-full border-2 p-3 rounded-lg mb-6 bg-white"><option value="">名前を選択</option>{staffList.map((s, i) => <option key={i} value={s.name}>{s.name}</option>)}</select>
       <div className="bg-white shadow-sm border-t border-l">
         <div className="flex justify-between items-center p-4 border-b border-r bg-gray-50/30">
@@ -181,16 +208,27 @@ export default function Home() {
       <textarea value={monthlyRemark} onChange={(e) => setMonthlyRemark(e.target.value)} className="w-full border-2 p-3 rounded-lg mt-6" placeholder="備考" rows={3} />
       <button onClick={handleSubmit} disabled={isSubmitting} className={`mt-6 w-full py-4 rounded-xl font-bold text-white shadow-lg ${isSubmitting ? 'bg-gray-400' : 'bg-blue-600'}`}>送信する</button>
       <div className="mt-8 text-center"><a href="/list" className="text-blue-600 font-bold border-b border-blue-600">全員のシフトを見る →</a></div>
+      
       {timeModalDate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
-            <h3 className="font-bold mb-4 text-center">{timeModalDate} の指定</h3>
-            <div className="flex gap-2 mb-6 justify-center">
-              <select value={tempStartTime} onChange={e => setTempStartTime(e.target.value)} className="border p-2 rounded"><option value="">なし</option>{timeOptions.map(t => <option key={t} value={t}>{t}</option>)}</select>
-              <span>〜</span>
-              <select value={tempEndTime} onChange={e => setTempEndTime(e.target.value)} className="border p-2 rounded"><option value="">なし</option>{timeOptions.map(t => <option key={t} value={t}>{t}</option>)}</select>
+            <h3 className="font-bold mb-4 text-center">{timeModalDate.split('-')[1]}月{timeModalDate.split('-')[2]}日の時間指定</h3>
+            <div className="flex gap-2 mb-6 justify-center text-lg">
+              <select value={tempStartTime} onChange={e => setTempStartTime(e.target.value)} className="border-2 border-gray-300 p-2 rounded-lg bg-white">
+                <option value="">指定なし</option>
+                {activeTimeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <span className="font-bold text-gray-500 mt-2">〜</span>
+              <select value={tempEndTime} onChange={e => setTempEndTime(e.target.value)} className="border-2 border-gray-300 p-2 rounded-lg bg-white">
+                <option value="">指定なし</option>
+                {activeTimeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
-            <div className="flex gap-2"><button onClick={clearTime} className="bg-red-100 text-red-600 p-3 rounded-xl flex-1">クリア</button><button onClick={() => setTimeModalDate(null)} className="bg-gray-200 p-3 rounded-xl flex-1">閉じる</button><button onClick={saveTime} className="bg-green-600 text-white p-3 rounded-xl flex-1">決定</button></div>
+            <div className="flex gap-2">
+              <button onClick={clearTime} className="bg-red-100 text-red-600 font-bold p-3 rounded-xl flex-1 text-sm">クリア</button>
+              <button onClick={() => setTimeModalDate(null)} className="bg-gray-200 text-gray-700 font-bold p-3 rounded-xl flex-1 text-sm">閉じる</button>
+              <button onClick={saveTime} className="bg-green-600 text-white font-bold p-3 rounded-xl flex-1 text-sm">決定</button>
+            </div>
           </div>
         </div>
       )}
