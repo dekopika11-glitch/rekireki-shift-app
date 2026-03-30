@@ -149,14 +149,13 @@ export default function ShiftList() {
               </div>
             </div>
 
-            {/* 時間指定: 装飾なし・完全上詰め */}
+            {/* 時間指定: 名前と時間を同じ行に並べて横スワイプ */}
             <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
               <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col justify-start">
                 {shift.timed.map((s, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight mb-0.5">
-                    <div>{s.name}:</div>
-                    <div>{s.range}</div>
+                  <div key={idx} className="w-full overflow-x-auto scrollbar-hide whitespace-nowrap text-[5.2pt] sm:text-[12px] py-[1px]">
+                    {s.name}:{s.range}
                   </div>
                 ))}
               </div>
