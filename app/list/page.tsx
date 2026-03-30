@@ -102,40 +102,51 @@ export default function ShiftList() {
         {isHoliday ? (
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
-          <div className="flex flex-col flex-1 text-[9px] sm:text-[11px]">
-            <div className="p-1 border-b border-gray-100 flex-1 min-h-[30px]">
-              <span className="text-[8px] font-bold text-blue-600 block leading-none mb-0.5">昼:</span>
-              <div className="text-gray-700 leading-tight font-medium">
-                {shift.day.map((name, idx) => <div key={idx} className="truncate">{name}</div>)}
+          <div className="flex flex-col flex-1 text-[9px] sm:text-[11px] overflow-hidden">
+            
+            {/* 昼: 縦スクロール */}
+            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col">
+              <span className="text-[8px] font-bold text-blue-600 block leading-none mb-0.5 shrink-0">昼:</span>
+              <div className="overflow-y-auto flex-1 space-y-0.5 scrollbar-hide">
+                {shift.day.map((name, idx) => (
+                  <div key={idx} className="text-gray-700 font-medium truncate">{name}</div>
+                ))}
               </div>
             </div>
-            <div className="p-1 border-b border-gray-100 flex-1 min-h-[30px]">
-              <span className="text-[8px] font-bold text-indigo-600 block leading-none mb-0.5">夜:</span>
-              <div className="text-gray-700 leading-tight font-medium">
-                {shift.night.map((name, idx) => <div key={idx} className="truncate">{name}</div>)}
+
+            {/* 夜: 縦スクロール */}
+            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col">
+              <span className="text-[8px] font-bold text-indigo-600 block leading-none mb-0.5 shrink-0">夜:</span>
+              <div className="overflow-y-auto flex-1 space-y-0.5 scrollbar-hide">
+                {shift.night.map((name, idx) => (
+                  <div key={idx} className="text-gray-700 font-medium truncate">{name}</div>
+                ))}
               </div>
             </div>
-            <div className="p-1 border-b border-gray-100 flex-1 min-h-[30px]">
-              <span className="text-[8px] font-bold text-green-600 block leading-none mb-0.5">1日:</span>
-              <div className="text-gray-700 leading-tight font-medium">
-                {shift.fullDay.map((name, idx) => <div key={idx} className="truncate">{name}</div>)}
+
+            {/* 1日: 縦スクロール */}
+            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col">
+              <span className="text-[8px] font-bold text-green-600 block leading-none mb-0.5 shrink-0">1日:</span>
+              <div className="overflow-y-auto flex-1 space-y-0.5 scrollbar-hide">
+                {shift.fullDay.map((name, idx) => (
+                  <div key={idx} className="text-gray-700 font-medium truncate">{name}</div>
+                ))}
               </div>
             </div>
-            {/* 時間指定セクション */}
-            <div className="p-1 flex-[1.5] min-h-[40px]">
-              <span className="text-[8px] font-bold text-orange-600 block leading-none mb-1">時間指定:</span>
-              <div className="flex flex-col gap-1">
+
+            {/* 時間指定: 縦スクロール */}
+            <div className="p-1 flex-[1.5] min-h-0 flex flex-col">
+              <span className="text-[8px] font-bold text-orange-600 block leading-none mb-1 shrink-0">時間指定:</span>
+              <div className="overflow-y-auto flex-1 space-y-1 scrollbar-hide">
                 {shift.timed.map((s, idx) => (
                   <div key={idx} className="border-b border-gray-50 last:border-0 pb-0.5">
-                    <div className="font-medium text-gray-700 leading-tight break-all">{s.name}:</div>
-                    {/* ★修正: スマホサイズを7ptに変更 */}
-                    <div className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium leading-none mt-0.5">
-                      {s.range}
-                    </div>
+                    <div className="font-medium text-gray-700 leading-tight truncate">{s.name}:</div>
+                    <div className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium leading-none">{s.range}</div>
                   </div>
                 ))}
               </div>
             </div>
+
           </div>
         )}
       </div>
@@ -144,11 +155,17 @@ export default function ShiftList() {
 
   return (
     <div className="w-full sm:max-w-5xl mx-auto p-0 sm:p-4 font-sans text-gray-800 pb-12">
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      
       <div className="flex justify-between items-center p-3 sm:px-0">
         <h1 className="text-lg sm:text-2xl font-bold">シフト一覧</h1>
         <a href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</a>
       </div>
       
+      {/* カレンダー本体 */}
       <div className="w-full bg-white border-t border-l border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="flex justify-between items-center p-2 sm:p-4 bg-gray-50/50 border-b border-r border-gray-200">
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="px-3 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100 shadow-sm">先月</button>
