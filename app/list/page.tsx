@@ -114,7 +114,7 @@ export default function ShiftList() {
     const fullDayRows = distributeToRows(shift.fullDay);
 
     days.push(
-      <div key={i} className={`flex flex-col h-56 sm:h-72 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
+      <div key={i} className={`flex flex-col h-52 sm:h-80 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
         <span className={`font-bold text-[10px] sm:text-sm border-b py-0.5 text-center shrink-0 ${isHoliday ? 'bg-red-100 text-red-600' : 'bg-gray-100/80'}`}>{i}</span>
         {isHoliday ? (
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
@@ -123,10 +123,10 @@ export default function ShiftList() {
             
             {/* 昼 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5pt] sm:text-[9px] font-bold text-blue-600 mb-0.5 shrink-0">昼</span>
+              <span className="text-[5.2pt] sm:text-[10px] font-bold text-blue-600 mb-0.5 shrink-0">昼</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
                 {dayRows.map((row, idx) => (
-                  <div key={idx} className="text-[5pt] sm:text-[11px] whitespace-nowrap py-[1px]">
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
                     {row.join(', ')}
                   </div>
                 ))}
@@ -135,10 +135,10 @@ export default function ShiftList() {
 
             {/* 夜 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5pt] sm:text-[9px] font-bold text-indigo-600 mb-0.5 shrink-0">夜</span>
+              <span className="text-[5.2pt] sm:text-[10px] font-bold text-indigo-600 mb-0.5 shrink-0">夜</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
                 {nightRows.map((row, idx) => (
-                  <div key={idx} className="text-[5pt] sm:text-[11px] whitespace-nowrap py-[1px]">
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
                     {row.join(', ')}
                   </div>
                 ))}
@@ -147,10 +147,10 @@ export default function ShiftList() {
 
             {/* 1日 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5pt] sm:text-[9px] font-bold text-green-600 mb-0.5 shrink-0">1日</span>
+              <span className="text-[5.2pt] sm:text-[10px] font-bold text-green-600 mb-0.5 shrink-0">1日</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
                 {fullDayRows.map((row, idx) => (
-                  <div key={idx} className="text-[5pt] sm:text-[11px] whitespace-nowrap py-[1px]">
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
                     {row.join(', ')}
                   </div>
                 ))}
@@ -159,9 +159,9 @@ export default function ShiftList() {
 
             {/* 時間指定 */}
             <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5pt] sm:text-[9px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
+              <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
-                <div className="text-[5pt] sm:text-[11px] whitespace-nowrap py-[1px]">
+                <div className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
                   {shift.timed.map((s, idx) => (
                     <span key={idx} className="mr-1.5">
                       {s.name}:{s.range}{idx < shift.timed.length - 1 ? ', ' : ''}
@@ -178,7 +178,7 @@ export default function ShiftList() {
   }
 
   return (
-    <div className="w-full sm:max-w-5xl mx-auto p-0 sm:p-4 font-sans text-gray-800 pb-12 bg-white">
+    <div className="w-full sm:max-w-6xl mx-auto p-0 sm:p-4 font-sans text-gray-800 pb-12 bg-white">
       <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
