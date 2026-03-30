@@ -103,35 +103,35 @@ export default function ShiftList() {
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
           <div className="flex flex-col flex-1 text-[9px] sm:text-[11px]">
-            {/* 昼セクション */}
             <div className="p-1 border-b border-gray-100 flex-1 min-h-[30px]">
               <span className="text-[8px] font-bold text-blue-600 block leading-none mb-0.5">昼:</span>
               <div className="text-gray-700 leading-tight font-medium">
                 {shift.day.map((name, idx) => <div key={idx} className="truncate">{name}</div>)}
               </div>
             </div>
-            {/* 夜セクション */}
             <div className="p-1 border-b border-gray-100 flex-1 min-h-[30px]">
               <span className="text-[8px] font-bold text-indigo-600 block leading-none mb-0.5">夜:</span>
               <div className="text-gray-700 leading-tight font-medium">
                 {shift.night.map((name, idx) => <div key={idx} className="truncate">{name}</div>)}
               </div>
             </div>
-            {/* 1日セクション */}
             <div className="p-1 border-b border-gray-100 flex-1 min-h-[30px]">
               <span className="text-[8px] font-bold text-green-600 block leading-none mb-0.5">1日:</span>
               <div className="text-gray-700 leading-tight font-medium">
                 {shift.fullDay.map((name, idx) => <div key={idx} className="truncate">{name}</div>)}
               </div>
             </div>
-            {/* ★修正: 時間指定セクション (背景を白に変更) */}
+            {/* 時間指定セクション */}
             <div className="p-1 flex-[1.5] min-h-[40px]">
               <span className="text-[8px] font-bold text-orange-600 block leading-none mb-1">時間指定:</span>
-              <div className="flex flex-col gap-1 text-gray-700 font-medium">
+              <div className="flex flex-col gap-1">
                 {shift.timed.map((s, idx) => (
                   <div key={idx} className="border-b border-gray-50 last:border-0 pb-0.5">
-                    <div className="font-bold text-gray-900 break-all">{s.name}:</div>
-                    <div className="text-[7px] sm:text-[9px] text-gray-900 font-bold leading-none">{s.range}</div>
+                    <div className="font-medium text-gray-700 leading-tight break-all">{s.name}:</div>
+                    {/* ★修正: スマホサイズを7ptに変更 */}
+                    <div className="text-[7pt] sm:text-[11px] text-gray-700 font-medium leading-none mt-0.5">
+                      {s.range}
+                    </div>
                   </div>
                 ))}
               </div>
