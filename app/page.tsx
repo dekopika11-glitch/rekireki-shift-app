@@ -169,7 +169,7 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 select-none">
-      <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold">シフト入力</h1><a href="/admin" className="text-gray-400 text-xs">⚙️設定</a></div>
+      <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold">シフト入力</h1><a href="/admin" className="text-gray-400 text-xs">⚙️管理者設定</a></div>
       <select value={staffName} onChange={(e) => {setStaffName(e.target.value); localStorage.setItem("shiftApp_staffName", e.target.value);}} className="w-full border-2 p-3 rounded-lg mb-6 bg-white"><option value="">名前を選択</option>{staffList.map((s, i) => <option key={i} value={s.name}>{s.name}</option>)}</select>
       <div className="bg-white shadow-sm border-t border-l">
         <div className="flex justify-between items-center p-4 border-b border-r bg-gray-50/30">
