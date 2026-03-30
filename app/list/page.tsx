@@ -97,51 +97,51 @@ export default function ShiftList() {
     const isHoliday = currentEffectiveHolidays.includes(dateStr); 
 
     days.push(
-      <div key={i} className={`flex flex-col h-56 sm:h-72 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
+      <div key={i} className={`flex flex-col h-52 sm:h-72 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
         <span className={`font-bold text-[10px] sm:text-sm border-b py-0.5 text-center shrink-0 ${isHoliday ? 'bg-red-100 text-red-600' : 'bg-gray-100/80'}`}>{i}</span>
         {isHoliday ? (
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
-          <div className="flex flex-col flex-1 text-[9px] sm:text-[11px] overflow-hidden">
+          <div className="flex flex-col flex-1 overflow-hidden">
             
-            {/* 昼: 縦スクロール */}
-            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col">
+            {/* 昼: 横スワイプ */}
+            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col justify-center">
               <span className="text-[8px] font-bold text-blue-600 block leading-none mb-0.5 shrink-0">昼:</span>
-              <div className="overflow-y-auto flex-1 space-y-0.5 scrollbar-hide">
+              <div className="flex flex-row overflow-x-auto gap-1 whitespace-nowrap scrollbar-hide items-center">
                 {shift.day.map((name, idx) => (
-                  <div key={idx} className="text-gray-700 font-medium truncate">{name}</div>
+                  <span key={idx} className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium bg-gray-50 px-1 border border-gray-200 rounded-[2px]">{name}</span>
                 ))}
               </div>
             </div>
 
-            {/* 夜: 縦スクロール */}
-            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col">
+            {/* 夜: 横スワイプ */}
+            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col justify-center">
               <span className="text-[8px] font-bold text-indigo-600 block leading-none mb-0.5 shrink-0">夜:</span>
-              <div className="overflow-y-auto flex-1 space-y-0.5 scrollbar-hide">
+              <div className="flex flex-row overflow-x-auto gap-1 whitespace-nowrap scrollbar-hide items-center">
                 {shift.night.map((name, idx) => (
-                  <div key={idx} className="text-gray-700 font-medium truncate">{name}</div>
+                  <span key={idx} className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium bg-gray-50 px-1 border border-gray-200 rounded-[2px]">{name}</span>
                 ))}
               </div>
             </div>
 
-            {/* 1日: 縦スクロール */}
-            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col">
+            {/* 1日: 横スワイプ */}
+            <div className="p-1 border-b border-gray-100 flex-1 min-h-0 flex flex-col justify-center">
               <span className="text-[8px] font-bold text-green-600 block leading-none mb-0.5 shrink-0">1日:</span>
-              <div className="overflow-y-auto flex-1 space-y-0.5 scrollbar-hide">
+              <div className="flex flex-row overflow-x-auto gap-1 whitespace-nowrap scrollbar-hide items-center">
                 {shift.fullDay.map((name, idx) => (
-                  <div key={idx} className="text-gray-700 font-medium truncate">{name}</div>
+                  <span key={idx} className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium bg-gray-50 px-1 border border-gray-200 rounded-[2px]">{name}</span>
                 ))}
               </div>
             </div>
 
-            {/* 時間指定: 縦スクロール */}
-            <div className="p-1 flex-[1.5] min-h-0 flex flex-col">
-              <span className="text-[8px] font-bold text-orange-600 block leading-none mb-1 shrink-0">時間指定:</span>
-              <div className="overflow-y-auto flex-1 space-y-1 scrollbar-hide">
+            {/* 時間指定: 横スワイプ */}
+            <div className="p-1 flex-[1.5] min-h-0 flex flex-col justify-center">
+              <span className="text-[8px] font-bold text-orange-600 block leading-none mb-0.5 shrink-0">時間指定:</span>
+              <div className="flex flex-row overflow-x-auto gap-1 whitespace-nowrap scrollbar-hide items-start">
                 {shift.timed.map((s, idx) => (
-                  <div key={idx} className="border-b border-gray-50 last:border-0 pb-0.5">
-                    <div className="font-medium text-gray-700 leading-tight truncate">{s.name}:</div>
-                    <div className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium leading-none">{s.range}</div>
+                  <div key={idx} className="flex flex-col bg-gray-50 px-1 border border-gray-200 rounded-[2px] min-w-fit">
+                    <div className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium leading-tight">{s.name}:</div>
+                    <div className="text-[5.5pt] sm:text-[11px] text-gray-700 font-medium leading-none mb-0.5">{s.range}</div>
                   </div>
                 ))}
               </div>
@@ -165,7 +165,6 @@ export default function ShiftList() {
         <a href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</a>
       </div>
       
-      {/* カレンダー本体 */}
       <div className="w-full bg-white border-t border-l border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="flex justify-between items-center p-2 sm:p-4 bg-gray-50/50 border-b border-r border-gray-200">
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="px-3 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100 shadow-sm">先月</button>
