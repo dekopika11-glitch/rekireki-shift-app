@@ -129,7 +129,7 @@ export default function ShiftList() {
                   <div key={idx} className="border-b border-gray-50 last:border-0 pb-0.5">
                     <div className="font-medium text-gray-700 leading-tight break-all">{s.name}:</div>
                     {/* ★修正: スマホサイズを7ptに変更 */}
-                    <div className="text-[7pt] sm:text-[11px] text-gray-700 font-medium leading-none mt-0.5">
+                    <div className="text-[6pt] sm:text-[11px] text-gray-700 font-medium leading-none mt-0.5">
                       {s.range}
                     </div>
                   </div>
