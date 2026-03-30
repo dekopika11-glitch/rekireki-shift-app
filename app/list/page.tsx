@@ -17,7 +17,6 @@ const getEffectiveHolidays = (y: number, m: number, dbHols: string[]) => {
   return monthHols;
 };
 
-// 名前を3つの行（段）に分配する関数
 const distributeToRows = (names: string[]) => {
   const row1: string[] = [];
   const row2: string[] = [];
@@ -75,10 +74,20 @@ export default function ShiftList() {
             formattedData[dateStr] = { day: [], night: [], fullDay: [], timed: [] };
           }
 
-          if (row.start_time && row.end_time) {
+          // ★修正: 開始か終了の「どちらか」があれば時間指定として扱う
+          if (row.start_time || row.end_time) {
+            let rangeStr = "";
+            if (row.start_time && row.end_time) {
+              rangeStr = `${row.start_time}-${row.end_time}`;
+            } else if (row.start_time) {
+              rangeStr = `${row.start_time}〜`;
+            } else if (row.end_time) {
+              rangeStr = `〜${row.end_time}`;
+            }
+
             formattedData[dateStr].timed.push({
               name: staffName,
-              range: `${row.start_time}-${row.end_time}`
+              range: rangeStr
             });
           } else {
             if (row.is_day && row.is_night) formattedData[dateStr].fullDay.push(staffName);
@@ -120,8 +129,6 @@ export default function ShiftList() {
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden font-medium text-gray-700 leading-none">
-            
-            {/* 昼 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-blue-600 mb-0.5 shrink-0">昼</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -132,8 +139,6 @@ export default function ShiftList() {
                 ))}
               </div>
             </div>
-
-            {/* 夜 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-indigo-600 mb-0.5 shrink-0">夜</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -144,8 +149,6 @@ export default function ShiftList() {
                 ))}
               </div>
             </div>
-
-            {/* 1日 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-green-600 mb-0.5 shrink-0">1日</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -156,8 +159,6 @@ export default function ShiftList() {
                 ))}
               </div>
             </div>
-
-            {/* 時間指定 */}
             <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
@@ -170,7 +171,6 @@ export default function ShiftList() {
                 </div>
               </div>
             </div>
-
           </div>
         )}
       </div>
@@ -183,12 +183,10 @@ export default function ShiftList() {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      
       <div className="flex justify-between items-center p-3 sm:px-0">
         <h1 className="text-lg sm:text-2xl font-bold">シフト一覧</h1>
         <a href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</a>
       </div>
-      
       <div className="w-full bg-white border-t border-l border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="flex justify-between items-center p-2 sm:p-4 bg-gray-50/50 border-b border-r border-gray-200">
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="px-3 py-1 bg-white border rounded text-[10px] sm:text-sm active:bg-gray-100 shadow-sm">先月</button>
@@ -204,7 +202,6 @@ export default function ShiftList() {
           <div className="grid grid-cols-7 w-full">{days}</div>
         )}
       </div>
-
       {!isLoading && (
         <div className="bg-white border rounded-xl shadow-sm p-4 mx-2 sm:mx-0">
           <h3 className="font-bold text-gray-700 mb-4 text-sm sm:text-base border-b pb-2">📋 {month + 1}月の提出状況</h3>

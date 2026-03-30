@@ -103,7 +103,6 @@ export default function AdminPage() {
       await supabase.from('holidays').delete().gte('date', `${prefix}-01`).lte('date', endStr);
       const currentMonthHolidays = holidays.filter(d => d.startsWith(prefix));
       if (currentMonthHolidays.length > 0) {
-        // ★修正: 配列の後に as any を追加してオーバーロードエラーを回避
         await supabase.from('holidays').insert(currentMonthHolidays.map(d => ({ date: d })) as any);
       }
       const { data } = await supabase.from('holidays').select('date');
@@ -116,7 +115,6 @@ export default function AdminPage() {
     if (!newStaffName.trim()) return;
     setIsSubmitting(true);
     try {
-      // ★修正: ここも as any を追加
       await supabase.from('staff').insert([{ name: newStaffName.trim() }] as any);
       setNewStaffName("");
       const { data } = await supabase.from('staff').select('id, name').order('created_at');
@@ -154,11 +152,8 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      // ★修正: ここも update する値に as any を追加
-      // @ts-ignore
       const { error } = await supabase.from('config').update({ value: newPw } as any).eq('key', 'admin_password');
       if (error) throw error;
-      
       setStoredPassword(newPw); 
       showToast("変更完了！");
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
@@ -175,19 +170,23 @@ export default function AdminPage() {
     return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; 
   };
 
-  if (!isAuthenticated) return (<div className="max-w-sm mx-auto p-8 mt-20 bg-white rounded shadow text-center relative">{toast && <div className={`absolute -top-16 left-0 right-0 p-3 rounded text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>}<h1 className="text-xl font-bold mb-4">管理者ログイン</h1><input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="パスワード" className="w-full border-2 border-gray-300 p-2 rounded mb-4 text-center" /><button onClick={() => { if (passwordInput === storedPassword || passwordInput === "1234") setIsAuthenticated(true); else showToast("パスワードが違います", "error"); }} className="w-full bg-gray-800 text-white font-bold py-2 rounded">ログイン</button></div>);
-
-  const days = [];
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const startingDayOfWeek = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  for (let i = 0; i < startingDayOfWeek; i++) days.push(<div key={`empty-${i}`} className="p-1 border bg-gray-50"></div>);
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const isHoliday = holidays.includes(dateStr); 
-    days.push(<div key={i} className={`p-1.5 border flex flex-col items-center h-20 ${isHoliday ? 'bg-red-50' : 'bg-white'}`}><span className={`font-bold text-sm mb-1 shrink-0 ${isHoliday ? 'text-red-500' : ''}`}>{i}</span><div className="flex-1 flex items-center justify-center w-full"><button onClick={() => toggleHoliday(dateStr)} className={`w-full py-1.5 rounded font-bold text-[10px] ${isHoliday ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{isHoliday ? '休業' : '営業'}</button></div></div>);
-  }
+  // ★ログイン判定から "1234" の予備コードを削除
+  if (!isAuthenticated) return (
+    <div className="max-w-sm mx-auto p-8 mt-20 bg-white rounded shadow text-center relative">
+      {toast && <div className={`absolute -top-16 left-0 right-0 p-3 rounded text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>}
+      <h1 className="text-xl font-bold mb-4">管理者ログイン</h1>
+      <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="パスワード" className="w-full border-2 border-gray-300 p-2 rounded mb-4 text-center" />
+      <button 
+        onClick={() => { 
+          if (passwordInput === storedPassword) setIsAuthenticated(true); 
+          else showToast("パスワードが違います", "error"); 
+        }} 
+        className="w-full bg-gray-800 text-white font-bold py-2 rounded"
+      >
+        ログイン
+      </button>
+    </div>
+  );
 
   return (
     <div className="max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 relative">
