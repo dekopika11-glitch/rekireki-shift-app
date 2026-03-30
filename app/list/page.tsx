@@ -149,14 +149,14 @@ export default function ShiftList() {
               </div>
             </div>
 
-            {/* 時間指定: 名前と時間を同じ行に並べて横スワイプ */}
+            {/* 時間指定: 全員まとめて横一行でスワイプ */}
             <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
-              <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col justify-start">
+              <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-row items-center gap-x-1.5">
                 {shift.timed.map((s, idx) => (
-                  <div key={idx} className="w-full overflow-x-auto scrollbar-hide whitespace-nowrap text-[5.2pt] sm:text-[12px] py-[1px]">
-                    {s.name}:{s.range}
-                  </div>
+                  <span key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap">
+                    {s.name}:{s.range}{idx < shift.timed.length - 1 ? ',' : ''}
+                  </span>
                 ))}
               </div>
             </div>
@@ -173,6 +173,7 @@ export default function ShiftList() {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
+      {/* ... (以下、戻るボタン等は変更なし) ... */}
       <div className="flex justify-between items-center p-3 sm:px-0">
         <h1 className="text-lg sm:text-2xl font-bold">シフト一覧</h1>
         <Link href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</Link>
