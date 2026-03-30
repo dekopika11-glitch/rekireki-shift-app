@@ -265,7 +265,7 @@ export default function Home() {
     <div className="w-full max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 select-none">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">シフト入力</h1>
-        <a href="/admin" className="text-gray-400 hover:text-gray-600 text-xs">⚙️設定</a>
+        <a href="/admin" className="text-gray-400 hover:text-gray-600 text-xs">⚙️管理者設定</a>
       </div>
 
       <div className="mb-6">
@@ -298,7 +298,7 @@ export default function Home() {
           value={monthlyRemark}
           onChange={(e) => setMonthlyRemark(e.target.value)}
           className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-base"
-          placeholder="例：テスト期間のため、20日〜25日はお休みをいただきたいです。"
+          placeholder=""
           rows={3}
         />
       </div>

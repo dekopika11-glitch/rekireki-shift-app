@@ -19,8 +19,6 @@ export default function AdminPage() {
   const [newStaffName, setNewStaffName] = useState("");
   const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null);
   const [submissions, setSubmissions] = useState<Record<string, string>>({});
-  
-  // ★追加: 備考一覧を保持するステート
   const [monthlyRemarks, setMonthlyRemarks] = useState<Record<string, string>>({});
 
   const [currentPw, setCurrentPw] = useState("");
@@ -41,16 +39,12 @@ export default function AdminPage() {
   }, []);
 
   const fetchInitialData = async () => {
-    // 1. スタッフリスト取得
     const { data: staffData } = await supabase.from('staff').select('id, name').order('created_at');
     if (staffData) setStaffList(staffData as Staff[]);
 
-    // 2. 定休日取得
     const { data: holidayData } = await supabase.from('holidays').select('date');
-    // @ts-ignore
-    if (holidayData) setDbHolidays(holidayData.map(row => row.date));
+    if (holidayData) setDbHolidays(holidayData.map(row => (row as any).date));
 
-    // 3. 提出日時取得
     const ym = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
     const startStr = `${ym}-01`;
     const endStr = `${ym}-${new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()}`;
@@ -68,7 +62,6 @@ export default function AdminPage() {
       setSubmissions(subMap);
     }
 
-    // ★追加: 4. 月間備考を取得
     const { data: remarkData } = await supabase.from('monthly_remarks')
       .select('staff_id, remark')
       .eq('year_month', ym);
@@ -110,12 +103,11 @@ export default function AdminPage() {
       await supabase.from('holidays').delete().gte('date', `${prefix}-01`).lte('date', endStr);
       const currentMonthHolidays = holidays.filter(d => d.startsWith(prefix));
       if (currentMonthHolidays.length > 0) {
-        // @ts-ignore
-        await supabase.from('holidays').insert(currentMonthHolidays.map(d => ({ date: d })));
+        // ★修正: 配列の後に as any を追加してオーバーロードエラーを回避
+        await supabase.from('holidays').insert(currentMonthHolidays.map(d => ({ date: d })) as any);
       }
       const { data } = await supabase.from('holidays').select('date');
-      // @ts-ignore
-      if (data) setDbHolidays(data.map(row => row.date));
+      if (data) setDbHolidays(data.map(row => (row as any).date));
       showToast("保存完了！");
     } catch (e) { showToast("保存失敗", "error"); } finally { setIsSubmitting(false); }
   };
@@ -124,8 +116,8 @@ export default function AdminPage() {
     if (!newStaffName.trim()) return;
     setIsSubmitting(true);
     try {
-      // @ts-ignore
-      await supabase.from('staff').insert([{ name: newStaffName.trim() }]);
+      // ★修正: ここも as any を追加
+      await supabase.from('staff').insert([{ name: newStaffName.trim() }] as any);
       setNewStaffName("");
       const { data } = await supabase.from('staff').select('id, name').order('created_at');
       if (data) setStaffList(data as Staff[]);
@@ -147,14 +139,34 @@ export default function AdminPage() {
   };
 
   const handleChangePassword = async () => {
-    if (currentPw !== storedPassword || newPw !== confirmPw || newPw.length < 4) { showToast("入力内容に不備があります", "error"); return; }
+    if (currentPw !== storedPassword) {
+      showToast("現在のパスワードが正しくありません", "error");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      showToast("新しいパスワードが一致しません", "error");
+      return;
+    }
+    if (newPw.length < 4) {
+      showToast("新しいパスワードは4文字以上にしてください", "error");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      // ★修正: ここも update する値に as any を追加
       // @ts-ignore
-      await supabase.from('config').update({ value: newPw }).eq('key', 'admin_password');
-      setStoredPassword(newPw); showToast("変更完了！");
+      const { error } = await supabase.from('config').update({ value: newPw } as any).eq('key', 'admin_password');
+      if (error) throw error;
+      
+      setStoredPassword(newPw); 
+      showToast("変更完了！");
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
-    } catch (e) { showToast("変更失敗", "error"); } finally { setIsSubmitting(false); }
+    } catch (e) { 
+      showToast("変更失敗", "error"); 
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   const formatDateTime = (dateStr: string) => { 
@@ -163,7 +175,7 @@ export default function AdminPage() {
     return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; 
   };
 
-  if (!isAuthenticated) return (<div className="max-w-sm mx-auto p-8 mt-20 bg-white rounded shadow text-center relative">{toast && <div className={`absolute -top-16 left-0 right-0 p-3 rounded text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-50' : 'bg-green-50'}`}>{toast.message}</div>}<h1 className="text-xl font-bold mb-4">管理者ログイン</h1><input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="パスワード" className="w-full border-2 border-gray-300 p-2 rounded mb-4 text-center" /><button onClick={() => { if (passwordInput === storedPassword || passwordInput === "1234") setIsAuthenticated(true); else showToast("パスワードが違います", "error"); }} className="w-full bg-gray-800 text-white font-bold py-2 rounded">ログイン</button></div>);
+  if (!isAuthenticated) return (<div className="max-w-sm mx-auto p-8 mt-20 bg-white rounded shadow text-center relative">{toast && <div className={`absolute -top-16 left-0 right-0 p-3 rounded text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>}<h1 className="text-xl font-bold mb-4">管理者ログイン</h1><input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="パスワード" className="w-full border-2 border-gray-300 p-2 rounded mb-4 text-center" /><button onClick={() => { if (passwordInput === storedPassword || passwordInput === "1234") setIsAuthenticated(true); else showToast("パスワードが違います", "error"); }} className="w-full bg-gray-800 text-white font-bold py-2 rounded">ログイン</button></div>);
 
   const days = [];
   const year = currentDate.getFullYear();
@@ -200,7 +212,6 @@ export default function AdminPage() {
               <div className="divide-y">{staffList.filter(s => submissions[s.id]).map(staff => (<div key={staff.id} className="p-3 flex justify-between items-center"><span className="text-sm font-bold">{staff.name}</span><span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">最終更新: {formatDateTime(submissions[staff.id])}</span></div>))}</div>
             </div>
 
-            {/* ★追加: 備考一覧エリア */}
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
               <h3 className="font-bold p-3 bg-blue-50 text-blue-700 border-b text-xs text-center">📝 今月の備考一覧</h3>
               <div className="divide-y">
