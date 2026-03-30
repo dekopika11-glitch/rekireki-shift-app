@@ -1,3 +1,39 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* 1. 変数を白背景・黒文字に固定 */
+:root {
+  --background: #ffffff;
+  --foreground: #111827; /* 濃いグレー（ほぼ黒） */
+}
+
+/* 2. ダークモード設定を無効化（またはライトモードと同じにする） 
+   これにより、スマホがダークモードでも背景が黒くなりません。
+*/
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #111827;
+  }
+}
+
+/* 3. ベースのスタイル設定 */
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    /* layout.tsx で設定した Geist フォントを適用 */
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* テーマ設定（Tailwind v4用） 
+   もし Geist フォントを使いたい場合は、ここに関連付けます。
+*/
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
