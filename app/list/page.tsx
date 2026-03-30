@@ -131,7 +131,7 @@ export default function ShiftList() {
                 {shift.timed.map((s, idx) => (
                   <div key={idx} className="border-b border-gray-50 last:border-0 pb-0.5">
                     <div className="font-bold text-gray-900 break-all">{s.name}:</div>
-                    <div className="text-[8px] sm:text-[9px] text-orange-700 font-bold leading-none">{s.range}</div>
+                    <div className="text-[7px] sm:text-[9px] text-gray-900 font-bold leading-none">{s.range}</div>
                   </div>
                 ))}
               </div>
