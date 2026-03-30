@@ -32,24 +32,25 @@ export default function AdminPage() {
 
   useEffect(() => {
     const getPassword = async () => {
-      const { data } = await supabase.from('config').select('value').eq('key', 'admin_password').single();
+      // セレクト時は .single() の前で cast する
+      const { data } = await (supabase.from('config') as any).select('value').eq('key', 'admin_password').single();
       if (data) setStoredPassword((data as any).value); 
     };
     getPassword();
   }, []);
 
   const fetchInitialData = async () => {
-    const { data: staffData } = await supabase.from('staff').select('id, name').order('created_at');
+    const { data: staffData } = await (supabase.from('staff') as any).select('id, name').order('created_at');
     if (staffData) setStaffList(staffData as Staff[]);
 
-    const { data: holidayData } = await supabase.from('holidays').select('date');
-    if (holidayData) setDbHolidays(holidayData.map(row => (row as any).date));
+    const { data: holidayData } = await (supabase.from('holidays') as any).select('date');
+    if (holidayData) setDbHolidays(holidayData.map((row: any) => row.date));
 
     const ym = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
     const startStr = `${ym}-01`;
     const endStr = `${ym}-${new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()}`;
     
-    const { data: shiftData } = await supabase.from('shifts')
+    const { data: shiftData } = await (supabase.from('shifts') as any)
       .select('staff_id, updated_at')
       .gte('date', startStr)
       .lte('date', endStr);
@@ -62,7 +63,7 @@ export default function AdminPage() {
       setSubmissions(subMap);
     }
 
-    const { data: remarkData } = await supabase.from('monthly_remarks')
+    const { data: remarkData } = await (supabase.from('monthly_remarks') as any)
       .select('staff_id, remark')
       .eq('year_month', ym);
     
@@ -100,13 +101,17 @@ export default function AdminPage() {
     try {
       const prefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
       const endStr = `${prefix}-${new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()}`;
-      await supabase.from('holidays').delete().gte('date', `${prefix}-01`).lte('date', endStr);
+      
+      // from() の直後に as any を入れる
+      await (supabase.from('holidays') as any).delete().gte('date', `${prefix}-01`).lte('date', endStr);
+      
       const currentMonthHolidays = holidays.filter(d => d.startsWith(prefix));
       if (currentMonthHolidays.length > 0) {
-        await supabase.from('holidays').insert(currentMonthHolidays.map(d => ({ date: d })) as any);
+        await (supabase.from('holidays') as any).insert(currentMonthHolidays.map(d => ({ date: d })));
       }
-      const { data } = await supabase.from('holidays').select('date');
-      if (data) setDbHolidays(data.map(row => (row as any).date));
+      
+      const { data } = await (supabase.from('holidays') as any).select('date');
+      if (data) setDbHolidays(data.map((row: any) => row.date));
       showToast("保存完了！");
     } catch (e) { showToast("保存失敗", "error"); } finally { setIsSubmitting(false); }
   };
@@ -115,9 +120,9 @@ export default function AdminPage() {
     if (!newStaffName.trim()) return;
     setIsSubmitting(true);
     try {
-      await supabase.from('staff').insert([{ name: newStaffName.trim() }] as any);
+      await (supabase.from('staff') as any).insert([{ name: newStaffName.trim() }]);
       setNewStaffName("");
-      const { data } = await supabase.from('staff').select('id, name').order('created_at');
+      const { data } = await (supabase.from('staff') as any).select('id, name').order('created_at');
       if (data) setStaffList(data as Staff[]);
       showToast("追加完了！");
     } catch (e) { showToast("追加失敗", "error"); } finally { setIsSubmitting(false); }
@@ -127,10 +132,10 @@ export default function AdminPage() {
     if (!staffToDelete) return;
     setIsSubmitting(true);
     try {
-      await supabase.from('shifts').delete().eq('staff_id', staffToDelete.id);
-      await supabase.from('staff').delete().eq('id', staffToDelete.id);
+      await (supabase.from('shifts') as any).delete().eq('staff_id', staffToDelete.id);
+      await (supabase.from('staff') as any).delete().eq('id', staffToDelete.id);
       setStaffToDelete(null);
-      const { data } = await supabase.from('staff').select('id, name').order('created_at');
+      const { data } = await (supabase.from('staff') as any).select('id, name').order('created_at');
       if (data) setStaffList(data as Staff[]);
       showToast("削除完了！");
     } catch (e) { showToast("削除失敗", "error"); } finally { setIsSubmitting(false); }
@@ -152,7 +157,7 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('config').update({ value: newPw } as any).eq('key', 'admin_password');
+      const { error } = await (supabase.from('config') as any).update({ value: newPw }).eq('key', 'admin_password');
       if (error) throw error;
       setStoredPassword(newPw); 
       showToast("変更完了！");
@@ -170,7 +175,6 @@ export default function AdminPage() {
     return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; 
   };
 
-  // ★ログイン判定から "1234" の予備コードを削除
   if (!isAuthenticated) return (
     <div className="max-w-sm mx-auto p-8 mt-20 bg-white rounded shadow text-center relative">
       {toast && <div className={`absolute -top-16 left-0 right-0 p-3 rounded text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>}
@@ -187,6 +191,18 @@ export default function AdminPage() {
       </button>
     </div>
   );
+
+  const days = [];
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const startingDayOfWeek = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let i = 0; i < startingDayOfWeek; i++) days.push(<div key={`empty-${i}`} className="p-1 border bg-gray-50"></div>);
+  for (let i = 1; i <= daysInMonth; i++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const isHoliday = holidays.includes(dateStr); 
+    days.push(<div key={i} className={`p-1.5 border flex flex-col items-center h-20 ${isHoliday ? 'bg-red-50' : 'bg-white'}`}><span className={`font-bold text-sm mb-1 shrink-0 ${isHoliday ? 'text-red-500' : ''}`}>{i}</span><div className="flex-1 flex items-center justify-center w-full"><button onClick={() => toggleHoliday(dateStr)} className={`w-full py-1.5 rounded font-bold text-[10px] ${isHoliday ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{isHoliday ? '休業' : '営業'}</button></div></div>);
+  }
 
   return (
     <div className="max-w-md mx-auto p-4 font-sans text-gray-800 pb-20 relative">
