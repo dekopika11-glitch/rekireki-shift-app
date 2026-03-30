@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
+import Link from "next/link";
 
 const getEffectiveHolidays = (y: number, m: number, dbHols: string[]) => {
   const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
@@ -17,6 +18,7 @@ const getEffectiveHolidays = (y: number, m: number, dbHols: string[]) => {
   return monthHols;
 };
 
+// 名前を3つの行（段）に分配する関数
 const distributeToRows = (names: string[]) => {
   const row1: string[] = [];
   const row2: string[] = [];
@@ -49,14 +51,13 @@ export default function ShiftList() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const { data: allStaff } = await supabase.from('staff').select('id, name').order('created_at');
+      const { data: allStaff } = await (supabase.from('staff') as any).select('id, name').order('created_at');
       if (allStaff) setStaffList(allStaff as any[]);
       
       const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
       const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
       
-      const { data: shiftData } = await supabase
-        .from('shifts')
+      const { data: shiftData } = await (supabase.from('shifts') as any)
         .select(`date, is_day, is_night, start_time, end_time, staff_id, staff ( name )`)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth);
@@ -74,21 +75,13 @@ export default function ShiftList() {
             formattedData[dateStr] = { day: [], night: [], fullDay: [], timed: [] };
           }
 
-          // ★修正: 開始か終了の「どちらか」があれば時間指定として扱う
           if (row.start_time || row.end_time) {
             let rangeStr = "";
-            if (row.start_time && row.end_time) {
-              rangeStr = `${row.start_time}-${row.end_time}`;
-            } else if (row.start_time) {
-              rangeStr = `${row.start_time}〜`;
-            } else if (row.end_time) {
-              rangeStr = `〜${row.end_time}`;
-            }
+            if (row.start_time && row.end_time) rangeStr = `${row.start_time}-${row.end_time}`;
+            else if (row.start_time) rangeStr = `${row.start_time}-`;
+            else if (row.end_time) rangeStr = `-${row.end_time}`;
 
-            formattedData[dateStr].timed.push({
-              name: staffName,
-              range: rangeStr
-            });
+            formattedData[dateStr].timed.push({ name: staffName, range: rangeStr });
           } else {
             if (row.is_day && row.is_night) formattedData[dateStr].fullDay.push(staffName);
             else if (row.is_day) formattedData[dateStr].day.push(staffName);
@@ -99,7 +92,7 @@ export default function ShiftList() {
       setMonthlyShifts(formattedData);
       setSubmittedStaffIds(submittedIds);
 
-      const { data: holidayData } = await supabase.from('holidays').select('date').gte('date', startOfMonth).lte('date', endOfMonth);
+      const { data: holidayData } = await (supabase.from('holidays') as any).select('date').gte('date', startOfMonth).lte('date', endOfMonth);
       if (holidayData) setHolidays((holidayData as any[]).map(row => row.date)); 
       setIsLoading(false);
     };
@@ -111,7 +104,7 @@ export default function ShiftList() {
   const currentEffectiveHolidays = getEffectiveHolidays(year, month, holidays);
 
   const days = [];
-  for (let i = 0; i < startingDayOfWeek; i++) days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/50"></div>);
+  for (let i = 0; i < startingDayOfWeek; i++) days.push(<div key={`empty-${i}`} className="border-r border-b bg-gray-50/50 h-52 sm:h-80"></div>);
   
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -129,48 +122,49 @@ export default function ShiftList() {
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden font-medium text-gray-700 leading-none">
+            
+            {/* 昼 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-blue-600 mb-0.5 shrink-0">昼</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
                 {dayRows.map((row, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
-                    {row.join(', ')}
-                  </div>
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">{row.join(', ')}</div>
                 ))}
               </div>
             </div>
+
+            {/* 夜 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-indigo-600 mb-0.5 shrink-0">夜</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
                 {nightRows.map((row, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
-                    {row.join(', ')}
-                  </div>
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">{row.join(', ')}</div>
                 ))}
               </div>
             </div>
+
+            {/* 1日 */}
             <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
               <span className="text-[5.2pt] sm:text-[10px] font-bold text-green-600 mb-0.5 shrink-0">1日</span>
               <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
                 {fullDayRows.map((row, idx) => (
-                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
-                    {row.join(', ')}
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">{row.join(', ')}</div>
+                ))}
+              </div>
+            </div>
+
+            {/* 時間指定 (縦スワイプ対応) */}
+            <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
+              <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
+              <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col gap-y-0.5">
+                {shift.timed.map((s, idx) => (
+                  <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight break-all border-b border-gray-50 last:border-0 pb-0.5">
+                    {s.name}:{s.range}
                   </div>
                 ))}
               </div>
             </div>
-            <div className="p-0.5 flex-[1.5] min-h-0 flex flex-col items-start overflow-hidden">
-              <span className="text-[5.2pt] sm:text-[10px] font-bold text-orange-600 mb-0.5 shrink-0">時間指定</span>
-              <div className="flex-1 w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
-                <div className="text-[5.2pt] sm:text-[12px] whitespace-nowrap py-[1px] sm:py-[2px]">
-                  {shift.timed.map((s, idx) => (
-                    <span key={idx} className="mr-1.5">
-                      {s.name}:{s.range}{idx < shift.timed.length - 1 ? ', ' : ''}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+
           </div>
         )}
       </div>
@@ -185,7 +179,7 @@ export default function ShiftList() {
       `}</style>
       <div className="flex justify-between items-center p-3 sm:px-0">
         <h1 className="text-lg sm:text-2xl font-bold">シフト一覧</h1>
-        <a href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</a>
+        <Link href="/" className="text-blue-500 hover:underline text-[10px] sm:text-xs font-bold bg-blue-50 px-3 py-1 rounded-full">← 入力へ</Link>
       </div>
       <div className="w-full bg-white border-t border-l border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="flex justify-between items-center p-2 sm:p-4 bg-gray-50/50 border-b border-r border-gray-200">
@@ -212,7 +206,6 @@ export default function ShiftList() {
                 {staffList.filter(s => submittedStaffIds.has(s.id)).map(staff => (
                   <span key={staff.id} className="text-[10px] sm:text-xs bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded">{staff.name}</span>
                 ))}
-                {Array.from(submittedStaffIds).length === 0 && <span className="text-xs text-gray-400">まだいません</span>}
               </div>
             </div>
             <div>
@@ -221,7 +214,6 @@ export default function ShiftList() {
                 {staffList.filter(s => !submittedStaffIds.has(s.id)).map(staff => (
                   <span key={staff.id} className="text-[10px] sm:text-xs bg-red-50 text-red-600 border border-red-100 px-2 py-1 rounded">{staff.name}</span>
                 ))}
-                {staffList.length - Array.from(submittedStaffIds).length === 0 && <span className="text-xs text-gray-400">全員完了！</span>}
               </div>
             </div>
           </div>
