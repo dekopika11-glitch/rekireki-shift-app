@@ -30,7 +30,6 @@ const distributeToRows = (names: string[]) => {
   return [row1, row2, row3];
 };
 
-// ★修正: データ構造を変更。時間指定なし/あり を分けて保持する
 type ShiftCategory = {
   noTime: string[];
   timed: { name: string; range: string }[];
@@ -45,9 +44,12 @@ export default function ShiftList() {
   };
   const [monthlyShifts, setMonthlyShifts] = useState<Record<string, DayShift>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [holidays, setHolidays] = useState<string[]>([]);
   const [staffList, setStaffList] = useState<{id: string, name: string}[]>([]);
   const [submittedStaffIds, setSubmittedStaffIds] = useState<Set<string>>(new Set());
+
+  const today = new Date(); 
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -55,57 +57,70 @@ export default function ShiftList() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const { data: allStaff } = await (supabase.from('staff') as any).select('id, name').order('created_at');
-      if (allStaff) setStaffList(allStaff as any[]);
-      
-      const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
-      
-      const { data: shiftData } = await (supabase.from('shifts') as any)
-        .select(`date, is_day, is_night, start_time, end_time, staff_id, staff ( name )`)
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth);
+      setFetchError(null); 
 
-      const formattedData: Record<string, DayShift> = {};
-      const submittedIds = new Set<string>();
+      try {
+        const { data: allStaff, error: staffError } = await (supabase.from('staff') as any).select('id, name').order('created_at');
+        if (staffError) throw staffError;
+        if (allStaff) setStaffList(allStaff as any[]);
+        
+        const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
+        
+        const { data: shiftData, error: shiftError } = await (supabase.from('shifts') as any)
+          .select(`date, is_day, is_night, start_time, end_time, staff_id, staff ( name )`)
+          .gte('date', startOfMonth)
+          .lte('date', endOfMonth);
 
-      if (shiftData) {
-        shiftData.forEach((row: any) => {
-          const dateStr = row.date;
-          const staffName = row.staff?.name || "不明";
-          submittedIds.add(row.staff_id);
+        if (shiftError) throw shiftError;
 
-          if (!formattedData[dateStr]) {
-            formattedData[dateStr] = { 
-              day: { noTime: [], timed: [] }, 
-              night: { noTime: [], timed: [] }, 
-              fullDay: { noTime: [], timed: [] } 
-            };
-          }
+        const formattedData: Record<string, DayShift> = {};
+        const submittedIds = new Set<string>();
 
-          if (row.start_time || row.end_time) {
-            let rangeStr = "";
-            if (row.start_time && row.end_time) rangeStr = `${row.start_time}-${row.end_time}`;
-            else if (row.start_time) rangeStr = `${row.start_time}-`;
-            else if (row.end_time) rangeStr = `-${row.end_time}`;
+        if (shiftData) {
+          shiftData.forEach((row: any) => {
+            const dateStr = row.date;
+            const staffName = row.staff?.name || "不明";
+            submittedIds.add(row.staff_id);
 
-            const timedObj = { name: staffName, range: rangeStr };
-            if (row.is_day && row.is_night) formattedData[dateStr].fullDay.timed.push(timedObj);
-            else if (row.is_day) formattedData[dateStr].day.timed.push(timedObj);
-            else if (row.is_night) formattedData[dateStr].night.timed.push(timedObj);
-          } else {
-            if (row.is_day && row.is_night) formattedData[dateStr].fullDay.noTime.push(staffName);
-            else if (row.is_day) formattedData[dateStr].day.noTime.push(staffName);
-            else if (row.is_night) formattedData[dateStr].night.noTime.push(staffName);
-          }
-        });
+            if (!formattedData[dateStr]) {
+              formattedData[dateStr] = { 
+                day: { noTime: [], timed: [] }, 
+                night: { noTime: [], timed: [] }, 
+                fullDay: { noTime: [], timed: [] } 
+              };
+            }
+
+            if (row.start_time || row.end_time) {
+              let rangeStr = "";
+              if (row.start_time && row.end_time) rangeStr = `${row.start_time}-${row.end_time}`;
+              else if (row.start_time) rangeStr = `${row.start_time}-`;
+              else if (row.end_time) rangeStr = `-${row.end_time}`;
+
+              const timedObj = { name: staffName, range: rangeStr };
+              if (row.is_day && row.is_night) formattedData[dateStr].fullDay.timed.push(timedObj);
+              else if (row.is_day) formattedData[dateStr].day.timed.push(timedObj);
+              else if (row.is_night) formattedData[dateStr].night.timed.push(timedObj);
+            } else {
+              if (row.is_day && row.is_night) formattedData[dateStr].fullDay.noTime.push(staffName);
+              else if (row.is_day) formattedData[dateStr].day.noTime.push(staffName);
+              else if (row.is_night) formattedData[dateStr].night.noTime.push(staffName);
+            }
+          });
+        }
+        setMonthlyShifts(formattedData);
+        setSubmittedStaffIds(submittedIds);
+
+        const { data: holidayData, error: holidayError } = await (supabase.from('holidays') as any).select('date').gte('date', startOfMonth).lte('date', endOfMonth);
+        if (holidayError) throw holidayError;
+        if (holidayData) setHolidays((holidayData as any[]).map(row => row.date)); 
+
+      } catch (error: any) {
+        console.error("データの取得エラー:", error);
+        setFetchError("データの読み込みに失敗しました。");
+      } finally {
+        setIsLoading(false);
       }
-      setMonthlyShifts(formattedData);
-      setSubmittedStaffIds(submittedIds);
-
-      const { data: holidayData } = await (supabase.from('holidays') as any).select('date').gte('date', startOfMonth).lte('date', endOfMonth);
-      if (holidayData) setHolidays((holidayData as any[]).map(row => row.date)); 
-      setIsLoading(false);
     };
     fetchData();
   }, [currentDate, year, month]);
@@ -114,16 +129,12 @@ export default function ShiftList() {
   const startingDayOfWeek = new Date(year, month, 1).getDay();
   const currentEffectiveHolidays = getEffectiveHolidays(year, month, holidays);
 
-  // ★各枠の描画ロジックを共通化
   const renderShiftCategory = (title: string, colorClass: string, categoryData: ShiftCategory) => {
     const rows = distributeToRows(categoryData.noTime);
     return (
       <div className="p-0.5 border-b border-gray-100 flex-1 min-h-0 flex flex-col items-start overflow-hidden">
         <span className={`text-[5.2pt] sm:text-[10px] font-bold ${colorClass} mb-0.5 shrink-0`}>{title}</span>
-        {/* 全体を縦スクロール可能に */}
         <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col justify-start">
-          
-          {/* 上部: 時間指定なし (3行で横スワイプ) */}
           {categoryData.noTime.length > 0 && (
             <div className="w-full overflow-x-auto scrollbar-hide flex flex-col justify-start">
               {rows.map((row, idx) => row.length > 0 ? (
@@ -133,14 +144,11 @@ export default function ShiftList() {
               ) : null)}
             </div>
           )}
-
-          {/* 下部: 時間指定あり (1人1行・上に詰める・線なし) */}
           {categoryData.timed.map((s, idx) => (
             <div key={idx} className="text-[5.2pt] sm:text-[12px] leading-tight py-[1px] whitespace-nowrap">
               {s.name}:{s.range}
             </div>
           ))}
-
         </div>
       </div>
     );
@@ -157,10 +165,23 @@ export default function ShiftList() {
       fullDay: { noTime: [], timed: [] } 
     };
     const isHoliday = currentEffectiveHolidays.includes(dateStr); 
+    
+    const isToday = year === today.getFullYear() && month === today.getMonth() && i === today.getDate();
 
     days.push(
       <div key={i} className={`flex flex-col h-52 sm:h-80 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
-        <span className={`font-bold text-[10px] sm:text-sm border-b py-0.5 text-center shrink-0 ${isHoliday ? 'bg-red-100 text-red-600' : 'bg-gray-100/80'}`}>{i}</span>
+        
+        {/* ★修正: 本日の場合はシンプルに黒丸 */}
+        <div className={`border-b py-0.5 flex justify-center items-center shrink-0 ${isHoliday ? 'bg-red-100' : 'bg-gray-100/80'}`}>
+          <span className={`font-bold text-[10px] sm:text-sm flex items-center justify-center ${
+            isToday 
+              ? 'bg-black text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full'
+              : (isHoliday ? 'text-red-600' : 'text-gray-700')
+          }`}>
+            {i}
+          </span>
+        </div>
+
         {isHoliday ? (
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
@@ -195,11 +216,13 @@ export default function ShiftList() {
         </div>
         {isLoading ? (
           <div className="text-center py-20 text-gray-400 text-xs border-r border-gray-200">読み込み中...</div>
+        ) : fetchError ? (
+          <div className="text-center py-20 text-red-500 font-bold text-sm border-r border-gray-200">{fetchError}</div>
         ) : (
           <div className="grid grid-cols-7 w-full">{days}</div>
         )}
       </div>
-      {!isLoading && (
+      {!isLoading && !fetchError && (
         <div className="bg-white border rounded-xl shadow-sm p-4 mx-2 sm:mx-0">
           <h3 className="font-bold text-gray-700 mb-4 text-sm sm:text-base border-b pb-2">📋 {month + 1}月の提出状況</h3>
           <div className="grid grid-cols-2 gap-4 sm:gap-8">
