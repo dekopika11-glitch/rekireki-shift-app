@@ -171,7 +171,6 @@ export default function ShiftList() {
     days.push(
       <div key={i} className={`flex flex-col h-52 sm:h-80 min-w-0 border-r border-b overflow-hidden ${isHoliday ? 'bg-red-50/50' : 'bg-white'}`}>
         
-        {/* ★修正: 本日の場合はシンプルに黒丸 */}
         <div className={`border-b py-0.5 flex justify-center items-center shrink-0 ${isHoliday ? 'bg-red-100' : 'bg-gray-100/80'}`}>
           <span className={`font-bold text-[10px] sm:text-sm flex items-center justify-center ${
             isToday 
@@ -186,8 +185,9 @@ export default function ShiftList() {
           <div className="flex-1 flex items-center justify-center"><span className="text-red-400 font-bold text-[9px] sm:text-xs">休</span></div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden font-medium text-gray-700 leading-none">
-            {renderShiftCategory("昼", "text-blue-600", shift.day)}
-            {renderShiftCategory("夜", "text-indigo-600", shift.night)}
+            {/* ★ここを修正しました！ 昼: text-orange-500, 夜: text-blue-600 */}
+            {renderShiftCategory("昼", "text-orange-500", shift.day)}
+            {renderShiftCategory("夜", "text-blue-600", shift.night)}
             {renderShiftCategory("1日", "text-green-600", shift.fullDay)}
           </div>
         )}
